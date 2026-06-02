@@ -14,7 +14,7 @@ pi:
   extra_args: []
 
 memory:
-  path: ~/.micro-agent/memory
+  path: /data/memory
   max_context_files: 3
   auto_compact_threshold: 500
 

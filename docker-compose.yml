@@ -1,0 +1,50 @@
+# micro-agent docker-compose
+#
+# Usage:
+#   docker compose up -d                    # Start with defaults
+#   docker compose -f docker-compose.ollama.yml up -d  # + Ollama
+#
+# Environment variables (set in .env or shell):
+#   MICRO_AGENT_MODEL=step-3.7-flash
+#   LLM_BASE_URL=http://host.docker.internal:8080/v1
+#   TELEGRAM_BOT_TOKEN=...
+#   TELEGRAM_WEBHOOK_SECRET=...
+
+services:
+  micro-agent:
+    build: .
+    container_name: micro-agent
+    restart: unless-stopped
+    ports:
+      - "8765:8765"
+    volumes:
+      # Persistent memory (Karpathy-style markdown)
+      - micro-agent-memory:/data/memory
+      # Optional: mount a local config
+      - ./config.yaml:/app/config.yaml:ro
+      # Optional: mount an existing Obsidian vault as memory
+      # - ~/Obsidian:/data/obsidian:ro
+    environment:
+      - MICRO_AGENT_HOST=0.0.0.0
+      - MICRO_AGENT_PORT=8765
+      - MICRO_AGENT_PROVIDER=${MICRO_AGENT_PROVIDER:-openai}
+      - MICRO_AGENT_MODEL=${MICRO_AGENT_MODEL:-}
+      # Point to your local LLM (Pi reads OPENAI_BASE_URL for openai provider)
+      - OPENAI_BASE_URL=${LLM_BASE_URL:-http://host.docker.internal:8080/v1}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-not-needed}
+      # Telegram (optional)
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - TELEGRAM_WEBHOOK_SECRET=${TELEGRAM_WEBHOOK_SECRET:-}
+      # Pi settings
+      - PI_DISABLE_UPDATE_CHECK=1
+      - PAGER=cat
+      - EDITOR=cat
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8765/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  micro-agent-memory:

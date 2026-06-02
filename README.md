@@ -55,6 +55,55 @@ Retrieval is **grep-based** — the fastest possible search. No vector DB, no em
 
 The agent signals memory writes with `MEMORY: <fact to remember>` in its responses. The gateway extracts these and writes them as markdown files.
 
+## Docker
+
+```bash
+# Build the image
+docker compose build
+
+# Start with default config (LLM at http://host.docker.internal:8080/v1)
+docker compose up -d
+
+# Or with a custom LLM endpoint
+LLM_BASE_URL=http://strix-halo:8080/v1 \
+MICRO_AGENT_MODEL=step-3.7-flash \
+docker compose up -d
+
+# With Telegram bot
+TELEGRAM_BOT_TOKEN=your-token \
+TELEGRAM_WEBHOOK_SECRET=your-secret \
+docker compose up -d
+
+# Check logs
+docker compose logs -f
+
+# Test it
+curl http://localhost:8765/health
+curl -X POST http://localhost:8765/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Hello!"}'
+```
+
+### Docker volumes
+
+| Path | Purpose |
+|------|---------|
+| `/data/memory` | Persistent markdown memory |
+| `/app/config.yaml` | Mount custom config |
+| `/data/sessions` | Pi session files |
+
+### Environment variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `OPENAI_BASE_URL` | `http://host.docker.internal:8080/v1` | LLM API endpoint |
+| `OPENAI_API_KEY` | `not-needed` | API key (optional) |
+| `MICRO_AGENT_MODEL` | (empty → Pi default) | Model name |
+| `MICRO_AGENT_PROVIDER` | `openai` | Provider name |
+| `MICRO_AGENT_MEMORY_PATH` | `/data/memory` | Memory directory |
+| `TELEGRAM_BOT_TOKEN` | (empty) | Telegram bot token |
+| `TELEGRAM_WEBHOOK_SECRET` | (empty) | Webhook secret |
+
 ## Quickstart
 
 ### 1. Install Pi

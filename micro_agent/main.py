@@ -69,6 +69,8 @@ def load_config(path: str | None = None) -> Config:
         config.pi.model = os.environ["MICRO_AGENT_MODEL"]
     if os.environ.get("MICRO_AGENT_PROVIDER"):
         config.pi.provider = os.environ["MICRO_AGENT_PROVIDER"]
+    if os.environ.get("MICRO_AGENT_MEMORY_PATH"):
+        config.memory.path = os.environ["MICRO_AGENT_MEMORY_PATH"]
     if os.environ.get("TELEGRAM_BOT_TOKEN"):
         config.telegram.bot_token = os.environ["TELEGRAM_BOT_TOKEN"]
     if os.environ.get("TELEGRAM_WEBHOOK_SECRET"):
