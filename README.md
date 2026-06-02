@@ -90,7 +90,42 @@ curl -X POST http://localhost:8765/chat \
 |------|---------|
 | `/data/memory` | Persistent markdown memory |
 | `/app/config.yaml` | Mount custom config |
+| `/root/.pi/agent/models.json` | Pi provider/model config |
 | `/data/sessions` | Pi session files |
+
+### Pi models.json
+
+Pi reads provider configuration from `~/.pi/agent/models.json`. The Docker setup mounts `./models.json` into the container. Edit this file to change LLM endpoints, API formats, or model parameters. See [Pi custom models docs](https://pi.dev/docs/models) for details.
+
+```json
+{
+  "providers": {
+    "openai": {
+      "baseUrl": "http://omarchy:1298/v1",
+      "api": "openai-completions",
+      "apiKey": "not-needed",
+      "compat": {
+        "supportsDeveloperRole": false,
+        "supportsReasoningEffort": false,
+        "thinkingFormat": "qwen-chat-template"
+      },
+      "models": [
+        {
+          "id": "unsloth-Qwen3.6-35B-A3B-MTP-GGUF",
+          "name": "Qwen 3.6 35B A3B (MTP)",
+          "reasoning": true,
+          "input": ["text", "image"],
+          "contextWindow": 262144,
+          "maxTokens": 16384,
+          "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 }
+        }
+      ]
+    }
+  }
+}
+```
+
+> **Important**: Pi defaults to `openai-responses` API which is incompatible with llama.cpp/vLLM/Ollama. Always use `"api": "openai-completions"` for local endpoints. For Qwen MTP thinking models, set `"thinkingFormat": "qwen-chat-template"`.
 
 ### Environment variables
 
@@ -197,24 +232,28 @@ export TELEGRAM_WEBHOOK_SECRET="your-secret"
 
 ## Model Providers
 
-Configure Pi to use any OpenAI-compatible endpoint:
+Configure Pi via `models.json` (recommended) or environment variables.
 
-```yaml
-# config.yaml
-pi:
-  provider: openai
-  model: step-3.7-flash
-  extra_args:
-    - "--base-url"
-    - "http://strix-halo:8080/v1"
-```
+### models.json (recommended)
 
-Or via env vars:
+Edit `./models.json` and mount it into the container (Docker) or place it at `~/.pi/agent/models.json` (local). This gives full control over:
+- **API format**: `openai-completions` for llama.cpp/vLLM/Ollama, `openai-responses` for OpenAI
+- **Thinking format**: `qwen-chat-template` for Qwen MTP, `deepseek` for DeepSeek-R1
+- **Compat flags**: `supportsDeveloperRole`, `maxTokensField`, etc.
+
+The repo ships with a working `models.json` configured for Omarchy (llama.cpp).
+
+### Environment variables
+
+For quick overrides, use env vars:
 
 ```bash
-export MICRO_AGENT_PROVIDER=ollama
-export MICRO_AGENT_MODEL=qwen2.5-coder:32b
+export MICRO_AGENT_PROVIDER=openai
+export MICRO_AGENT_MODEL=step-3.7-flash
+export OPENAI_BASE_URL=http://localhost:8080/v1
 ```
+
+> **Note**: `OPENAI_BASE_URL` sets the endpoint in docker-compose but Pi requires `models.json` for full control over API format and thinking compatibility. If you only set env vars without `models.json`, Pi will default to `openai-responses` API which doesn't work with most local endpoints.
 
 ## Why not OpenClaw?
 
