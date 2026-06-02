@@ -20,6 +20,8 @@ services:
     volumes:
       # Persistent memory (Karpathy-style markdown)
       - micro-agent-memory:/data/memory
+      # Custom Pi models.json for local OpenAI-compatible endpoints
+      - ./models.json:/root/.pi/agent/models.json:ro
       # Optional: mount a local config
       - ./config.yaml:/app/config.yaml:ro
       # Optional: mount an existing Obsidian vault as memory

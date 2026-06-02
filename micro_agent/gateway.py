@@ -11,6 +11,7 @@ It manages:
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from pathlib import Path
 from typing import AsyncIterator
@@ -124,14 +125,23 @@ class Gateway:
         # 4. Stream events and collect the final response
         final_text = ""
         async for event in self.pi.stream_events():
+            log.debug("Pi event: %s %s", event.get("type"), str(event)[:300])
             if event.get("type") == "message_update":
                 data = event.get("data", {})
                 delta = data.get("delta", "")
                 if delta:
                     final_text += delta
             elif event.get("type") == "message_end":
-                data = event.get("data", {})
-                if data.get("text"):
+                # Assistant messages use "data", user messages use "message"
+                data = event.get("data") or {}
+                msg = event.get("message") or {}
+                if msg.get("role") == "assistant":
+                    content = msg.get("content", [])
+                    if content:
+                        final_text = "".join(
+                            c.get("text", "") for c in content if c.get("type") == "text"
+                        )
+                if not final_text and data.get("text"):
                     final_text = data["text"]
 
         # 5. Extract and save memory updates
@@ -172,6 +182,7 @@ class Gateway:
 
         final_text = ""
         async for event in self.pi.stream_events():
+            log.debug("Pi event: %s %s", event.get("type"), str(event)[:300])
             if event.get("type") == "message_update":
                 data = event.get("data", {})
                 delta = data.get("delta", "")
@@ -179,14 +190,21 @@ class Gateway:
                     final_text += delta
                     yield delta
             elif event.get("type") == "message_end":
-                data = event.get("data", {})
-                if data.get("text"):
+                # Assistant messages use "data", user messages use "message"
+                data = event.get("data") or {}
+                msg = event.get("message") or {}
+                if msg.get("role") == "assistant":
+                    content = msg.get("content", [])
+                    if content:
+                        remaining = "".join(
+                            c.get("text", "") for c in content if c.get("type") == "text"
+                        )
+                        if remaining:
+                            final_text = remaining
+                            yield remaining
+                if not final_text and data.get("text"):
                     final_text = data["text"]
-                    # Yield any remaining text not covered by deltas
-                    if delta and not data.get("text", "").startswith(
-                        final_text[: len(delta)]
-                    ):
-                        yield data["text"]
+                    yield data["text"]
 
         # Save memory updates
         if final_text:

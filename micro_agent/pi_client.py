@@ -12,12 +12,7 @@ import json
 import logging
 import os
 import subprocess
-import tempfile
-import time
-from pathlib import Path
 from typing import AsyncIterator
-
-from micro_agent.models import RPCCommand, RPCResponse
 
 log = logging.getLogger(__name__)
 
@@ -54,15 +49,13 @@ class PiRPCClient:
         self.extra_args = extra_args or []
         self.timeout = timeout
 
-        self._process: subprocess.Popen | None = None
-        self._reader: asyncio.StreamReader | None = None
-        self._writer: asyncio.StreamWriter | None = None
+        self._process: asyncio.subprocess.Process | None = None
         self._req_id = 0
-        self._pending: dict[str, asyncio.Future] = {}
+        self._stderr_task: asyncio.Task | None = None
 
     @property
     def is_running(self) -> bool:
-        return self._process is not None and self._process.poll() is None
+        return self._process is not None and self._process.returncode is None
 
     async def start(self) -> None:
         """Start Pi in RPC mode and wait for readiness."""
@@ -95,43 +88,40 @@ class PiRPCClient:
                 f"npm install -g @earendil-works/pi-coding-agent"
             ) from e
 
-        # Wrap stdio in asyncio streams
-        loop = asyncio.get_event_loop()
-        self._reader = asyncio.StreamReader()
-        protocol = asyncio.StreamReaderProtocol(self._reader)
-        if self._process.stdout:
-            await loop.connect_read_pipe(lambda: protocol, self._process.stdout)
-
-        self._writer = asyncio.StreamWriter(
-            asyncio.get_event_loop()._proactor or asyncio.get_event_loop()._selector,
-            asyncio.StreamWriterProtocol(
-                lambda: asyncio.Transport(None)
-            ),
-            self._process.stdin,
-            None,
-        ) if hasattr(asyncio, 'StreamWriterProtocol') else None  # fallback
-
-        # Simplified writer setup
-        self._writer_raw = self._process.stdin
+        # Start background stderr reader so Pi doesn't block on stderr buffer
+        self._stderr_task = asyncio.create_task(self._drain_stderr())
 
         # Wait briefly for process to be ready
         await asyncio.sleep(0.5)
         if self._process.returncode is not None:
-            stderr = await self._read_stderr()
+            stderr_data = await self._read_stderr()
             raise PiConnectionError(
-                f"Pi exited immediately (code {self._process.returncode}): {stderr}"
+                f"Pi exited immediately (code {self._process.returncode}): {stderr_data}"
             )
 
         log.info("Pi RPC ready (pid=%d)", self._process.pid)
 
+    async def _drain_stderr(self) -> None:
+        """Continuously read and log stderr to prevent buffer deadlocks."""
+        if not self._process or not self._process.stderr:
+            return
+        try:
+            while True:
+                line = await self._process.stderr.readline()
+                if not line:
+                    break
+                log.debug("pi stderr: %s", line.decode(errors="replace").rstrip())
+        except Exception:
+            pass
+
     async def _read_stderr(self) -> str:
-        """Read any available stderr output."""
+        """Read any buffered stderr output."""
         if self._process and self._process.stderr:
             try:
-                data = await asyncio.wait_for(
+                leftover = await asyncio.wait_for(
                     self._process.stderr.read(), timeout=2.0
                 )
-                return data.decode("utf-8", errors="replace")
+                return leftover.decode("utf-8", errors="replace")
             except (asyncio.TimeoutError, OSError):
                 pass
         return ""
@@ -142,18 +132,20 @@ class PiRPCClient:
 
     async def _send_line(self, data: dict) -> None:
         """Write a JSON line to Pi's stdin."""
-        if not self._writer_raw or self._writer_raw.is_closed():
+        if not self._process or not self._process.stdin:
             raise PiConnectionError("Pi stdin is closed")
         line = json.dumps(data, ensure_ascii=False) + "\n"
-        self._writer_raw.write(line.encode("utf-8"))
-        await asyncio.get_event_loop().run_in_executor(None, self._writer_raw.flush)
+        self._process.stdin.write(line.encode("utf-8"))
+        await self._process.stdin.drain()
 
     async def _read_line(self) -> dict | None:
         """Read a JSON line from Pi's stdout."""
-        if not self._reader:
+        if not self._process or not self._process.stdout:
             raise PiConnectionError("Pi stdout reader not available")
         try:
-            raw = await asyncio.wait_for(self._reader.readline(), timeout=self.timeout)
+            raw = await asyncio.wait_for(
+                self._process.stdout.readline(), timeout=self.timeout
+            )
         except asyncio.TimeoutError:
             raise PiConnectionError(f"Pi RPC timed out after {self.timeout}s")
         if not raw:
@@ -167,11 +159,8 @@ class PiRPCClient:
         self,
         message: str,
         images: list[dict] | None = None,
-    ) -> RPCResponse:
-        """Send a prompt to Pi and wait for the acknowledgement response.
-
-        The actual assistant response comes via events (stream_events).
-        """
+    ) -> dict:
+        """Send a prompt to Pi and return the acknowledgement response."""
         req_id = await self._next_id()
         cmd = {
             "id": req_id,
@@ -184,12 +173,11 @@ class PiRPCClient:
 
         await self._send_line(cmd)
 
-        # Read the response (success/fail acknowledgement)
         resp = await self._read_line()
         if resp is None:
             raise PiConnectionError("Pi closed connection unexpectedly")
 
-        return RPCResponse(**resp)
+        return resp
 
     async def stream_events(self) -> AsyncIterator[dict]:
         """Stream events from Pi's RPC stdout.
@@ -201,22 +189,12 @@ class PiRPCClient:
             if line is None:
                 break
 
-            # Responses have 'type': 'response' and an 'id'
-            # Events have a 'type' but no 'id'
-            if line.get("type") == "response":
-                # Correlate with pending futures
-                req_id = line.get("id", "")
-                if req_id in self._pending:
-                    self._pending[req_id].set_result(line)
-                    del self._pending[req_id]
-                continue
-
-            # It's an event
-            yield line
-
             # Stop streaming when agent finishes
             if line.get("type") == "agent_end":
+                yield line
                 break
+
+            yield line
 
     async def bash(self, command: str) -> dict:
         """Execute a shell command via Pi and return the result."""
@@ -248,10 +226,16 @@ class PiRPCClient:
     async def abort(self) -> None:
         """Abort the current Pi operation."""
         await self._send_line({"type": "abort"})
-        # No response expected for abort
 
     async def stop(self) -> None:
         """Gracefully stop the Pi subprocess."""
+        if self._stderr_task and not self._stderr_task.done():
+            self._stderr_task.cancel()
+            try:
+                await self._stderr_task
+            except asyncio.CancelledError:
+                pass
+
         if self._process and self._process.returncode is None:
             log.info("Stopping Pi RPC (pid=%d)", self._process.pid)
             self._process.terminate()
@@ -262,5 +246,3 @@ class PiRPCClient:
                 self._process.kill()
                 await self._process.wait()
         self._process = None
-        self._reader = None
-        self._writer_raw = None

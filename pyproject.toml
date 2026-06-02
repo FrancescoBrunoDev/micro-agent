@@ -13,7 +13,7 @@ dependencies = [
 ]
 
 [project.scripts]
-micro-agent = "micro_agent.cli:main"
+micro-agent = "micro_agent.main:main"
 
 [build-system]
 requires = ["setuptools>=75"]

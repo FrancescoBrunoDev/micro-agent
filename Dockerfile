@@ -11,18 +11,21 @@ RUN npm install -g --ignore-scripts @earendil-works/pi-coding-agent \
 # ── Final stage ──────────────────────────────────────────────────────
 FROM python:3.13-slim
 
-# Install runtime deps: Node.js for Pi
+# Install Node.js 22 (Pi requires Node >= 22, Debian apt has 20)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    nodejs \
-    npm \
-    ca-certificates \
-    curl \
-    git \
+    ca-certificates curl gnupg \
+    && mkdir -p /etc/apt/keyrings \
+    && curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key \
+    | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg \
+    && echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_22.x nodistro main" \
+    > /etc/apt/sources.list.d/nodesource.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends nodejs git \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy Pi from build stage
 COPY --from=pi-builder /usr/local/lib/node_modules /usr/local/lib/node_modules
-RUN ln -s /usr/local/lib/node_modules/@earendil-works/pi-coding-agent/bin/cli.js /usr/local/bin/pi
+RUN ln -s /usr/local/lib/node_modules/@earendil-works/pi-coding-agent/dist/cli.js /usr/local/bin/pi
 
 # Verify Pi
 RUN pi --version || echo "Pi verification done"
