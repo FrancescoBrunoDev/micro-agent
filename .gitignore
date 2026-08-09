@@ -7,3 +7,4 @@ build/
 .micro-agent/
 *.log
 .DS_Store
+.env
