@@ -16,6 +16,25 @@ set -e
 MODELS_FILE="${PI_CODING_AGENT_DIR:-/data/home/.pi/agent}/models.json"
 mkdir -p "$(dirname "$MODELS_FILE")"
 
+# ── Configure git to use gh as credential helper ──────────────────────
+# Lets `git clone/push/pull` use the GH_TOKEN automatically.
+git config --global --add safe.directory '*' 2>/dev/null || true
+if [ -n "${GH_TOKEN}" ]; then
+    git config --global credential.helper '!gh auth git-credential'
+    echo "gh credential helper configured (GH_TOKEN present)"
+elif command -v gh >/dev/null 2>&1; then
+    gh auth status 2>/dev/null && git config --global credential.helper '!gh auth git-credential' \
+        && echo "gh credential helper configured (gh auth login)" || echo "gh installed but not authenticated (set GH_TOKEN)"
+else
+    echo "gh not installed"
+fi
+if [ -n "${GH_USER_NAME}" ]; then
+    git config --global user.name "${GH_USER_NAME}"
+fi
+if [ -n "${GH_USER_EMAIL}" ]; then
+    git config --global user.email "${GH_USER_EMAIL}"
+fi
+
 BASE_URL="${OPENAI_BASE_URL:-http://host.docker.internal:8080/v1}"
 PROVIDER="${PI_PROVIDER:-llamacpp}"
 API_KEY="${OPENAI_API_KEY:-not-needed}"

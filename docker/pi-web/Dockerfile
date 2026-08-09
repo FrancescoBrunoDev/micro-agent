@@ -31,9 +31,19 @@ FROM node:22-bookworm
 COPY --from=builder /usr/local/lib/node_modules /usr/local/lib/node_modules
 COPY --from=builder /usr/local/bin /usr/local/bin
 
-# Install tini + curl for healthchecks
+# Install tini + curl + git for healthchecks and repo work
 RUN apt-get update && apt-get install -y --no-install-recommends \
     tini curl ca-certificates git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install GitHub CLI (gh) from the official apt repo
+RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+    | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
+    && chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+    > /etc/apt/sources.list.d/github-cli.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends gh \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy entrypoint script
