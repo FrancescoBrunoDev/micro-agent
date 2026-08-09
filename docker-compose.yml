@@ -1,37 +1,37 @@
-# micro-agent + PI WEB — docker-compose
+# PI WEB — docker-compose
+# Web UI for Pi Coding Agent, ready for Coolify deployment.
 #
-# PI WEB is a browser UI for Pi Coding Agent that keeps agent sessions running
-# in real workspaces on your machine or server. Since pi-web already bundles
-# Pi as an npm peer dependency, this compose file runs only the pi-web stack.
+# All configuration is via environment variables (set in .env or Coolify dashboard).
+# No external file mounts needed — models.json is generated inside the container.
 #
 # Usage:
-#   docker compose up -d --build    # Build and start pi-web
-#   docker compose down -v          # Stop and remove volumes
+#   cp .env.example .env      # Copy env template
+#   # Edit .env to set your LLM endpoint and model
+#   docker compose up -d --build
 #
-# Open http://127.0.0.1:8505 in your browser.
+# Or deploy on Coolify: import this repo, set env vars, deploy.
 
 services:
-  # ─── PI WEB — browser UI for Pi Coding Agent ─────────────────────────────
-  # Provides a web interface for supervising persistent Pi sessions, workspaces,
-  # terminals, and git worktrees. Pi is bundled as an npm peer dependency.
   pi-web-sessiond:
     build:
       context: .
       dockerfile: docker/pi-web/Dockerfile
-    container_name: pi-web-sessiond
+    container_name: ${PI_WEB_CONTAINER_PREFIX:-pi-web}-sessiond
     restart: unless-stopped
     command: ["pi-web-sessiond"]
     volumes:
+      # Named volumes — managed by Docker/Coolify, no host path needed
       - pi-web-data:/data
-      # Pi reads ~/.pi/agent/models.json — with HOME=/data/home that's /data/home/.pi/agent/
-      - ./models.json:/data/home/.pi/agent/models.json:ro
     environment:
       - PI_WEB_DATA_DIR=/data/pi-web
       - PI_WEB_SESSIOND_SOCKET=/data/pi-web/sessiond.sock
       - PI_CODING_AGENT_DIR=/data/pi-agent
-      # Point Pi to your local LLM (same endpoint as micro-agent would use)
-      - OPENAI_BASE_URL=${LLM_BASE_URL:-http://host.docker.internal:8080/v1}
+      # LLM endpoint — set these in .env or Coolify dashboard
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-http://host.docker.internal:8080/v1}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-not-needed}
+      # Model config (used to generate models.json on first start)
+      - PI_PROVIDER=${PI_PROVIDER:-openai}
+      - PI_MODEL_NAME=${PI_MODEL_NAME:-qwen2.5-coder:32b}
     healthcheck:
       test: ["CMD-SHELL", "test -S /data/pi-web/sessiond.sock"]
       interval: 10s
@@ -43,27 +43,28 @@ services:
     build:
       context: .
       dockerfile: docker/pi-web/Dockerfile
-    container_name: pi-web-web
+    container_name: ${PI_WEB_CONTAINER_PREFIX:-pi-web}-web
     restart: unless-stopped
     depends_on:
       pi-web-sessiond:
         condition: service_healthy
     command: ["pi-web-server"]
     ports:
-      - "${PI_WEB_BIND_ADDR:-127.0.0.1}:${PI_WEB_PORT:-8505}:8504"
+      - "${PI_WEB_BIND_ADDR:-127.0.0.1}:${PI_WEB_PORT:-8504}:8504"
     volumes:
       - pi-web-data:/data
-      # Pi reads ~/.pi/agent/models.json — with HOME=/data/home that's /data/home/.pi/agent/
-      - ./models.json:/data/home/.pi/agent/models.json:ro
     environment:
       - PI_WEB_HOST=0.0.0.0
       - PI_WEB_PORT=8504
       - PI_WEB_DATA_DIR=/data/pi-web
       - PI_WEB_SESSIOND_SOCKET=/data/pi-web/sessiond.sock
       - PI_CODING_AGENT_DIR=/data/pi-agent
-      # Point Pi to your local LLM (same endpoint as micro-agent would use)
-      - OPENAI_BASE_URL=${LLM_BASE_URL:-http://host.docker.internal:8080/v1}
+      # LLM endpoint — set these in .env or Coolify dashboard
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-http://host.docker.internal:8080/v1}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-not-needed}
+      # Model config (used to generate models.json on first start)
+      - PI_PROVIDER=${PI_PROVIDER:-openai}
+      - PI_MODEL_NAME=${PI_MODEL_NAME:-qwen2.5-coder:32b}
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8504/api/pi-web/runtime >/dev/null"]
       interval: 10s
@@ -71,5 +72,8 @@ services:
       retries: 12
       start_period: 10s
 
+# Named volume for persistent data (sessions, workspaces, Pi config).
+# For multiple instances on the same host, change this name in both
+# the volumes section and the service volume mounts below.
 volumes:
   pi-web-data:

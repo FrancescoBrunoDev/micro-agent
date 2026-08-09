@@ -101,32 +101,49 @@ All in `.env` (read by docker-compose):
 
 ## PI WEB (browser UI for Pi Coding Agent)
 
-This project runs [pi-web](https://pi-web.dev/) as a Docker Compose service. Since pi-web bundles Pi as an npm peer dependency, there is no separate micro-agent gateway in the Docker stack — just the pi-web browser UI.
+This project runs [pi-web](https://pi-web.dev/) as a Docker Compose service. Since pi-web bundles Pi as an npm peer dependency, there is no separate gateway — just the browser UI.
 
-### Quick start
+### Coolify deployment
+
+1. Import this repo into Coolify
+2. Set environment variables (see `.env.example`):
+   - `LLM_BASE_URL` — your LLM endpoint (e.g. `http://ollama:11434/v1`)
+   - `PI_MODEL_NAME` — model identifier
+   - `OPENAI_API_KEY` — if your LLM requires one
+3. Set `PI_WEB_BIND_ADDR=0.0.0.0` to expose the web UI
+4. Deploy
+
+### Local deployment
 
 ```bash
-docker compose up -d --build   # Build and start pi-web
-docker compose down -v          # Stop and remove volumes
-
-# Open http://127.0.0.1:8505 in your browser
+cp .env.example .env
+# Edit .env...
+docker compose up -d --build
+# Open http://localhost:8504
 ```
 
-### Configuration
+### How it works
 
-Set the LLM endpoint and pi-web port in `.env`:
+- **No external file mounts** — `models.json` is generated inside the container from env vars (`OPENAI_BASE_URL`, `PI_PROVIDER`, `PI_MODEL_NAME`) on first start
+- **Named volumes** — all persistent data (sessions, workspaces, Pi config) uses a Docker named volume (`pi-web-data` by default), configurable via `PI_WEB_VOLUME_NAME`
+- **Pi is bundled** — installed as an npm peer dependency of `@jmfederico/pi-web`, no separate installation needed
 
-```dotenv
-LLM_BASE_URL=http://omarchy:1298/v1    # your local llama.cpp endpoint
-OPENAI_API_KEY=not-needed               # many local LLMs don't need one
-PI_WEB_PORT=8505                        # change to 8504 if no host pi-web runs there
-```
+### Environment variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `LLM_BASE_URL` | `http://host.docker.internal:8080/v1` | OpenAI-compatible LLM endpoint |
+| `OPENAI_API_KEY` | `not-needed` | API key for the LLM |
+| `PI_PROVIDER` | `openai` | Pi provider name |
+| `PI_MODEL_NAME` | `qwen2.5-coder:32b` | Model identifier (used in models.json) |
+| `PI_WEB_BIND_ADDR` | `127.0.0.1` | Web UI bind address (use `0.0.0.0` for Coolify) |
+| `PI_WEB_PORT` | `8504` | Web UI port |
+| `PI_WEB_VOLUME_NAME` | `pi-web-data` | Named volume for persistent data |
 
 ### Files
 
 | File | Purpose |
 |------|---------|
 | `docker-compose.yml` | Runs `pi-web-sessiond` + `pi-web-web` services |
-| `docker/pi-web/Dockerfile` | Builds the pi-web image (Node.js 22 + npm packages, includes Pi) |
-| `.env` | LLM endpoint, pi-web port, Pi settings |
-| `models.json` | Pi provider/model config (mounted into the container) |
+| `docker/pi-web/Dockerfile` | Builds the pi-web image (Node.js 22, includes Pi) |
+| `docker/pi-web/entrypoint.sh` | Generates models.json from env vars on startup |

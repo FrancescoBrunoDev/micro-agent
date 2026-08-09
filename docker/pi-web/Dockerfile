@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # PI WEB — web UI for Pi Coding Agent
-# Built from npm packages; Pi is resolved as a peer dependency.
+# Self-contained image with built-in config generation (no external mounts needed).
 # Based on the official pi-web Docker setup (github.com/jmfederico/pi-web).
 
 FROM node:22-bookworm AS builder
@@ -11,7 +11,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install pi-web (which pulls Pi as a peer dependency) + Pi directly
-# Using the same version pinning approach as the official image
 RUN npm install -g --omit=dev --include=peer --no-audit --no-fund \
     "@jmfederico/pi-web@latest" \
     --allow-scripts=node-pty \
@@ -32,10 +31,14 @@ FROM node:22-bookworm
 COPY --from=builder /usr/local/lib/node_modules /usr/local/lib/node_modules
 COPY --from=builder /usr/local/bin /usr/local/bin
 
-# Install tini for proper signal handling (matches official image)
+# Install tini + curl for healthchecks
 RUN apt-get update && apt-get install -y --no-install-recommends \
     tini curl ca-certificates git \
     && rm -rf /var/lib/apt/lists/*
+
+# Copy entrypoint script
+COPY docker/pi-web/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 # Runtime configuration — matches official pi-web Docker compose
 ENV HOME=/data/home \
@@ -51,4 +54,4 @@ ENV HOME=/data/home \
 WORKDIR /workspace
 EXPOSE 8504
 
-ENTRYPOINT ["tini", "--"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
