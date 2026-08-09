@@ -140,10 +140,23 @@ docker compose up -d --build
 | `PI_WEB_HOST_PORT` | `8504` | Web UI port |
 | `PI_WEB_VOLUME_NAME` | `pi-web-data` | Named volume for persistent data |
 
+### How models are discovered
+
+On startup, `entrypoint.sh`:
+
+1. Reads `LLM_BASE_URL` from the environment (this is the OpenAI-compatible endpoint, e.g. llama.cpp)
+2. Queries `{LLM_BASE_URL}/models` to discover the served models automatically
+3. Writes a valid `models.json` to `$PI_CODING_AGENT_DIR` (default `/data/pi-agent`) — this is the directory pi-web's Pi processes actually use
+4. Models appear in the pi-web UI under the provider name `llamacpp` (configurable via `PI_PROVIDER`)
+
+**Important schema detail:** Pi's `models.json` requires every model's `cost` object to have ALL FOUR fields — `input`, `output`, `cacheRead`, `cacheWrite`. If any are missing, the entire file is rejected and Pi falls back to its built-in OpenAI catalog (showing only gpt-* models). The entrypoint always generates all four.
+
+**Why a custom provider name?** Using `llamacpp` (instead of `openai`) prevents Pi from merging its built-in OpenAI catalog (gpt-4, gpt-5, etc.) into your local config. Your local models appear cleanly under the `llamacpp` provider in the UI.
+
 ### Files
 
 | File | Purpose |
 |------|---------|
-| `docker-compose.yml` | Runs `pi-web-sessiond` + `pi-web-web` services |
+| `docker-compose.yml` | Runs the single `pi-web` service (sessiond + web in one container) |
 | `docker/pi-web/Dockerfile` | Builds the pi-web image (Node.js 22, includes Pi) |
-| `docker/pi-web/entrypoint.sh` | Generates models.json from env vars on startup |
+| `docker/pi-web/entrypoint.sh` | Discovers models + generates models.json, starts sessiond + web |

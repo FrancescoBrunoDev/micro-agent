@@ -28,7 +28,7 @@ services:
       - PI_WEB_SESSIOND_SOCKET=/data/pi-web/sessiond.sock
       - PI_CODING_AGENT_DIR=/data/pi-agent
       # LLM endpoint — set in .env or Coolify dashboard
-      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-http://host.docker.internal:8080/v1}
+      - OPENAI_BASE_URL=${LLM_BASE_URL:-http://host.docker.internal:8080/v1}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-not-needed}
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8504/api/pi-web/runtime >/dev/null"]
