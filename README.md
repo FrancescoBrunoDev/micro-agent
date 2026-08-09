@@ -26,7 +26,7 @@ docker compose up -d --build
 
 ## How it works
 
-- **pi-web** (browser UI) + **Pi** (coding agent) run as Docker Compose services
+- **Single container** runs both pi-web (browser UI) and sessiond (Pi session manager)
 - Pi is bundled as an npm peer dependency of `@jmfederico/pi-web` — no separate installation
 - `models.json` is generated inside the container from env vars on first start
 - All persistent data uses a named Docker volume (`pi-web-data`)

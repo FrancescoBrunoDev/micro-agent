@@ -2,24 +2,19 @@
 set -e
 
 # Generate Pi models.json from environment variables if not already present.
-# This allows configuring the LLM endpoint entirely from container env vars
-# (no external file mounts needed — perfect for Coolify).
 MODELS_FILE="/data/home/.pi/agent/models.json"
 mkdir -p "$(dirname "$MODELS_FILE")"
 
 if [ ! -f "$MODELS_FILE" ]; then
-    echo "Generating models.json from environment variables..."
+    echo "Generating models.json from LLM_BASE_URL env var..."
 
-    # Default model name
-    MODEL_NAME="default"
-    PROVIDER="openai"
     BASE_URL="${OPENAI_BASE_URL:-http://host.docker.internal:8080/v1}"
     API_KEY="${OPENAI_API_KEY:-not-needed}"
 
     cat > "$MODELS_FILE" << EOF
 {
   "providers": {
-    "${PROVIDER}": {
+    "openai": {
       "baseUrl": "${BASE_URL}",
       "api": "openai-completions",
       "apiKey": "${API_KEY}",
@@ -31,8 +26,8 @@ if [ ! -f "$MODELS_FILE" ]; then
       },
       "models": [
         {
-          "id": "${MODEL_NAME}",
-          "name": "${MODEL_NAME}",
+          "id": "default",
+          "name": "Default Model (select in pi-web UI)",
           "input": ["text"],
           "contextWindow": 131072,
           "maxTokens": 8192,
@@ -43,10 +38,25 @@ if [ ! -f "$MODELS_FILE" ]; then
   }
 }
 EOF
-    echo "models.json generated with provider=${PROVIDER}, model=${MODEL_NAME}"
+    echo "models.json generated with baseUrl=${BASE_URL}"
 else
     echo "models.json already exists, skipping generation"
 fi
 
-# Hand off to the original command (pi-web-sessiond or pi-web-server)
-exec "$@"
+# Start sessiond in the background (manages persistent Pi sessions)
+echo "Starting pi-web-sessiond..."
+pi-web-sessiond &
+SESSIOND_PID=$!
+
+# Wait for sessiond socket to be ready
+for i in $(seq 1 30); do
+    if [ -S /data/pi-web/sessiond.sock ]; then
+        echo "sessiond is ready"
+        break
+    fi
+    sleep 1
+done
+
+# Start the web server (foreground — this is the main process)
+echo "Starting pi-web-server..."
+exec pi-web-server

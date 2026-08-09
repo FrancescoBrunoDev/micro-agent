@@ -1,54 +1,25 @@
-# PI WEB — docker-compose
+# PI WEB — docker-compose (single service)
 # Web UI for Pi Coding Agent, ready for Coolify deployment.
-#
-# All configuration is via environment variables (set in .env or Coolify dashboard).
-# No external file mounts needed — models.json is generated inside the container.
+# All configuration is via environment variables — no external file mounts.
 #
 # Usage:
 #   cp .env.example .env      # Copy env template
-#   # Edit .env to set your LLM endpoint
 #   docker compose up -d --build
+#   # Open http://localhost:8505
 #
-# Or deploy on Coolify: import this repo, set env vars, deploy.
+# Or deploy on Coolify: import, set env vars, deploy.
 
 services:
-  pi-web-sessiond:
+  pi-web:
     build:
       context: .
       dockerfile: docker/pi-web/Dockerfile
-    container_name: ${PI_WEB_CONTAINER_PREFIX:-pi-web}-sessiond
+    container_name: ${PI_WEB_CONTAINER_PREFIX:-pi-web}
     restart: unless-stopped
-    command: ["pi-web-sessiond"]
-    volumes:
-      # Named volumes — managed by Docker/Coolify, no host path needed
-      - pi-web-data:/data
-    environment:
-      - PI_WEB_DATA_DIR=/data/pi-web
-      - PI_WEB_SESSIOND_SOCKET=/data/pi-web/sessiond.sock
-      - PI_CODING_AGENT_DIR=/data/pi-agent
-      # LLM endpoint — set these in .env or Coolify dashboard
-      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-http://host.docker.internal:8080/v1}
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-not-needed}
-    healthcheck:
-      test: ["CMD-SHELL", "test -S /data/pi-web/sessiond.sock"]
-      interval: 10s
-      timeout: 3s
-      retries: 12
-      start_period: 10s
-
-  pi-web-web:
-    build:
-      context: .
-      dockerfile: docker/pi-web/Dockerfile
-    container_name: ${PI_WEB_CONTAINER_PREFIX:-pi-web}-web
-    restart: unless-stopped
-    depends_on:
-      pi-web-sessiond:
-        condition: service_healthy
-    command: ["pi-web-server"]
     ports:
       - "${PI_WEB_BIND_ADDR:-127.0.0.1}:${PI_WEB_HOST_PORT:-8505}:8504"
     volumes:
+      # Named volume — managed by Docker/Coolify, no host path needed
       - pi-web-data:/data
     environment:
       - PI_WEB_HOST=0.0.0.0
@@ -56,7 +27,7 @@ services:
       - PI_WEB_DATA_DIR=/data/pi-web
       - PI_WEB_SESSIOND_SOCKET=/data/pi-web/sessiond.sock
       - PI_CODING_AGENT_DIR=/data/pi-agent
-      # LLM endpoint — set these in .env or Coolify dashboard
+      # LLM endpoint — set in .env or Coolify dashboard
       - OPENAI_BASE_URL=${OPENAI_BASE_URL:-http://host.docker.internal:8080/v1}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-not-needed}
     healthcheck:
@@ -64,10 +35,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 12
-      start_period: 10s
+      start_period: 15s
 
 # Named volume for persistent data (sessions, workspaces, Pi config).
-# For multiple instances on the same host, change this name in both
-# the volumes section and the service volume mounts below.
 volumes:
   pi-web-data:
