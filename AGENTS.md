@@ -100,3 +100,35 @@ All in `.env` (read by docker-compose):
 - `MICRO_AGENT_MODEL` — model ID
 - `MICRO_AGENT_PROVIDER` — provider name (default: `openai`)
 - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET` — optional Telegram bot
+
+## PI WEB (browser UI for Pi Coding Agent)
+
+This project runs [pi-web](https://pi-web.dev/) as a Docker Compose service. Since pi-web bundles Pi as an npm peer dependency, there is no separate micro-agent gateway in the Docker stack — just the pi-web browser UI.
+
+### Quick start
+
+```bash
+docker compose up -d --build   # Build and start pi-web
+docker compose down -v          # Stop and remove volumes
+
+# Open http://127.0.0.1:8505 in your browser
+```
+
+### Configuration
+
+Set the LLM endpoint and pi-web port in `.env`:
+
+```dotenv
+LLM_BASE_URL=http://omarchy:1298/v1    # your local llama.cpp endpoint
+OPENAI_API_KEY=not-needed               # many local LLMs don't need one
+PI_WEB_PORT=8505                        # change to 8504 if no host pi-web runs there
+```
+
+### Files
+
+| File | Purpose |
+|------|---------|
+| `docker-compose.yml` | Runs `pi-web-sessiond` + `pi-web-web` services |
+| `docker/pi-web/Dockerfile` | Builds the pi-web image (Node.js 22 + npm packages, includes Pi) |
+| `.env` | LLM endpoint, pi-web port, Pi settings |
+| `models.json` | Pi provider/model config (mounted into the container) |
