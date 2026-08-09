@@ -15,7 +15,25 @@ services:
       context: .
       dockerfile: docker/pi-web/Dockerfile
     container_name: ${PI_WEB_CONTAINER_PREFIX:-pi-web}
+    # Stable hostname on the docker network — other services can reach
+    # this container at http://pi-web:8504 (or with the Coolify suffix).
+    hostname: ${PI_WEB_HOSTNAME:-pi-web}
     restart: unless-stopped
+    # Join the explicit network (pi-web-net by default). Other services on
+    # the same network are reachable by their service/hostname, e.g.
+    # http://omarchy:1298 for the LLM, and this container is reachable as
+    # http://pi-web:8504. On Coolify, add the Coolify network in the UI to
+    # reach other Coolify apps by their internal hostnames.
+    networks:
+      - ${PI_WEB_NETWORK:-pi-web-net}
+    # Reach services running on the host machine itself (e.g. llama.cpp on
+    # the Raspberry Pi) via http://host.docker.internal:<port>
+    # NOTE: for other tailnet/LAN hosts that Docker DNS can't resolve (e.g.
+    # raspberrypi2 via Tailscale), add the mapping in the Coolify UI under
+    # container settings → Extra Hosts, or with:
+    #   docker compose run --add-host raspberrypi2:100.98.224.117 ...
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     # FUSE is required for rclone mount (KDrive access via WebDAV).
     # On Coolify these can also be set in the container settings UI.
     devices:
@@ -61,3 +79,17 @@ services:
 # Named volume for persistent data (sessions, workspaces, Pi config).
 volumes:
   pi-web-data:
+
+# Explicit network so the container has a predictable name and other
+# services can join it.
+#
+# On Coolify (e.g. your Raspberry Pi): set
+#   PI_WEB_NETWORK=coolify
+#   PI_WEB_NETWORK_EXTERNAL=true
+# to join the existing Coolify network. Then pi-web can reach other Coolify
+# services by their names (e.g. http://my-llm:8080/v1) and is itself
+# reachable at http://pi-web:8504 from those services.
+networks:
+  pi-web-net:
+    name: ${PI_WEB_NETWORK:-pi-web-net}
+    external: ${PI_WEB_NETWORK_EXTERNAL:-false}

@@ -155,6 +155,27 @@ On startup, `entrypoint.sh`:
 
 **Why only my models show (no gpt-\*)?** Pi ships with ~38 built-in providers. A provider only appears in the UI if it's "configured" (has credentials). The `openai` provider becomes configured when `OPENAI_API_KEY` is set as a container env var — so we deliberately do NOT pass it globally. The API key lives only inside `models.json` (per-provider), keeping the built-in OpenAI catalog hidden.
 
+### Networking (Coolify / Raspberry Pi)
+
+The container joins an explicit Docker network (`pi-web-net` by default) and has a
+stable hostname (`pi-web`), so:
+
+- **Other services on the same network** reach pi-web at `http://pi-web:8504`
+- **pi-web reaches other services** by their hostnames (e.g. `http://my-llm:8080/v1`)
+- **Services on the host itself** (e.g. llama.cpp running directly on the Pi) are
+  reachable at `http://host.docker.internal:<port>` (via `extra_hosts: host-gateway`)
+
+To join the **Coolify network** (so pi-web can reach other Coolify apps and be
+reached by them), set in Coolify env vars:
+
+```dotenv
+PI_WEB_NETWORK=coolify
+PI_WEB_NETWORK_EXTERNAL=true
+```
+
+Then pi-web is reachable at `http://pi-web:8504` from other services on the
+Coolify network, and externally via `hostname:port` (e.g. `http://<pi-ip>:8505`).
+
 ### Files
 
 | File | Purpose |
