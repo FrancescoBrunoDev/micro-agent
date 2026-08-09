@@ -11,8 +11,8 @@ if [ ! -f "$MODELS_FILE" ]; then
     echo "Generating models.json from environment variables..."
 
     # Default model name
-    MODEL_NAME="${PI_MODEL_NAME:-${MICRO_AGENT_MODEL:-qwen2.5-coder:32b}}"
-    PROVIDER="${PI_PROVIDER:-openai}"
+    MODEL_NAME="default"
+    PROVIDER="openai"
     BASE_URL="${OPENAI_BASE_URL:-http://host.docker.internal:8080/v1}"
     API_KEY="${OPENAI_API_KEY:-not-needed}"
 

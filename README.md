@@ -40,6 +40,6 @@ docker compose up -d --build
 | `PI_PROVIDER` | `openai` | Pi provider name |
 | `PI_MODEL_NAME` | `qwen2.5-coder:32b` | Model identifier |
 | `PI_WEB_BIND_ADDR` | `127.0.0.1` | Web UI bind address (use `0.0.0.0` for Coolify) |
-| `PI_WEB_PORT` | `8505` | Host port for the web UI |
+| `PI_WEB_HOST_PORT` | `8505` | Host port mapped to container's internal 8504 |
 
 See [AGENTS.md](AGENTS.md) for full documentation.

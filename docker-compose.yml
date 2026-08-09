@@ -6,7 +6,7 @@
 #
 # Usage:
 #   cp .env.example .env      # Copy env template
-#   # Edit .env to set your LLM endpoint and model
+#   # Edit .env to set your LLM endpoint
 #   docker compose up -d --build
 #
 # Or deploy on Coolify: import this repo, set env vars, deploy.
@@ -29,9 +29,6 @@ services:
       # LLM endpoint — set these in .env or Coolify dashboard
       - OPENAI_BASE_URL=${OPENAI_BASE_URL:-http://host.docker.internal:8080/v1}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-not-needed}
-      # Model config (used to generate models.json on first start)
-      - PI_PROVIDER=${PI_PROVIDER:-openai}
-      - PI_MODEL_NAME=${PI_MODEL_NAME:-qwen2.5-coder:32b}
     healthcheck:
       test: ["CMD-SHELL", "test -S /data/pi-web/sessiond.sock"]
       interval: 10s
@@ -50,7 +47,7 @@ services:
         condition: service_healthy
     command: ["pi-web-server"]
     ports:
-      - "${PI_WEB_BIND_ADDR:-127.0.0.1}:${PI_WEB_PORT:-8504}:8504"
+      - "${PI_WEB_BIND_ADDR:-127.0.0.1}:${PI_WEB_HOST_PORT:-8505}:8504"
     volumes:
       - pi-web-data:/data
     environment:
@@ -62,9 +59,6 @@ services:
       # LLM endpoint — set these in .env or Coolify dashboard
       - OPENAI_BASE_URL=${OPENAI_BASE_URL:-http://host.docker.internal:8080/v1}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-not-needed}
-      # Model config (used to generate models.json on first start)
-      - PI_PROVIDER=${PI_PROVIDER:-openai}
-      - PI_MODEL_NAME=${PI_MODEL_NAME:-qwen2.5-coder:32b}
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8504/api/pi-web/runtime >/dev/null"]
       interval: 10s

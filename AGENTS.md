@@ -137,7 +137,7 @@ docker compose up -d --build
 | `PI_PROVIDER` | `openai` | Pi provider name |
 | `PI_MODEL_NAME` | `qwen2.5-coder:32b` | Model identifier (used in models.json) |
 | `PI_WEB_BIND_ADDR` | `127.0.0.1` | Web UI bind address (use `0.0.0.0` for Coolify) |
-| `PI_WEB_PORT` | `8504` | Web UI port |
+| `PI_WEB_HOST_PORT` | `8504` | Web UI port |
 | `PI_WEB_VOLUME_NAME` | `pi-web-data` | Named volume for persistent data |
 
 ### Files
