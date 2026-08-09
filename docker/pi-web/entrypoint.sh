@@ -37,7 +37,7 @@ fi
 
 BASE_URL="${OPENAI_BASE_URL:-http://host.docker.internal:8080/v1}"
 PROVIDER="${PI_PROVIDER:-llamacpp}"
-API_KEY="${OPENAI_API_KEY:-not-needed}"
+API_KEY="${LLM_API_KEY:-${OPENAI_API_KEY:-not-needed}}"
 
 # ── Query the LLM server for its model list ─────────────────────────
 echo "Querying $BASE_URL/models for available models..."
@@ -109,6 +109,36 @@ cat > "$MODELS_FILE" << EOF
 }
 EOF
 echo "models.json written to $MODELS_FILE (baseUrl=${BASE_URL})"
+
+# ── Restrict the model picker to our local provider only ──────────────
+# Pi ships with ~38 built-in providers (openai, anthropic, google, ...).
+# Without this, the pi-web UI shows all their models too. Setting
+# enabledModels in settings.json scopes the picker to our provider.
+SETTINGS_FILE="${PI_CODING_AGENT_DIR:-/data/home/.pi/agent}/settings.json"
+mkdir -p "$(dirname "$SETTINGS_FILE")"
+MODEL_PATTERN="${PI_MODEL_PATTERN:-${PROVIDER}/*}"
+if [ -f "$SETTINGS_FILE" ]; then
+    python3 - "$SETTINGS_FILE" "$MODEL_PATTERN" << 'PYEOF'
+import json, sys
+path, pattern = sys.argv[1], sys.argv[2]
+try:
+    with open(path) as f:
+        settings = json.load(f)
+except Exception:
+    settings = {}
+settings["enabledModels"] = [pattern]
+with open(path, "w") as f:
+    json.dump(settings, f, indent=2)
+print(f"settings.json: enabledModels=[{pattern}]")
+PYEOF
+else
+    cat > "$SETTINGS_FILE" << EOF
+{
+  "enabledModels": ["${MODEL_PATTERN}"]
+}
+EOF
+    echo "settings.json created: enabledModels=[${MODEL_PATTERN}]"
+fi
 
 # ── Start sessiond in the background (manages persistent Pi sessions) ──
 echo "Starting pi-web-sessiond..."

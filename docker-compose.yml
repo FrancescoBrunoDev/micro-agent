@@ -27,9 +27,11 @@ services:
       - PI_WEB_DATA_DIR=/data/pi-web
       - PI_WEB_SESSIOND_SOCKET=/data/pi-web/sessiond.sock
       - PI_CODING_AGENT_DIR=/data/pi-agent
-      # LLM endpoint — set in .env or Coolify dashboard
+      # LLM endpoint — set in .env or Coolify dashboard.
+      # NOTE: do NOT pass OPENAI_API_KEY globally — it marks Pi's built-in
+      # openai provider as "configured", making its gpt-* models appear in
+      # the UI. The API key is set per-provider inside models.json instead.
       - OPENAI_BASE_URL=${LLM_BASE_URL:-http://host.docker.internal:8080/v1}
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-not-needed}
       # GitHub CLI — optional token so gh/git work in the container
       - GH_TOKEN=${GH_TOKEN:-}
       - GH_USER_NAME=${GH_USER_NAME:-}

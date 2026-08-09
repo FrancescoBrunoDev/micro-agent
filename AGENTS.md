@@ -153,6 +153,8 @@ On startup, `entrypoint.sh`:
 
 **Why a custom provider name?** Using `llamacpp` (instead of `openai`) prevents Pi from merging its built-in OpenAI catalog (gpt-4, gpt-5, etc.) into your local config. Your local models appear cleanly under the `llamacpp` provider in the UI.
 
+**Why only my models show (no gpt-\*)?** Pi ships with ~38 built-in providers. A provider only appears in the UI if it's "configured" (has credentials). The `openai` provider becomes configured when `OPENAI_API_KEY` is set as a container env var — so we deliberately do NOT pass it globally. The API key lives only inside `models.json` (per-provider), keeping the built-in OpenAI catalog hidden.
+
 ### Files
 
 | File | Purpose |
