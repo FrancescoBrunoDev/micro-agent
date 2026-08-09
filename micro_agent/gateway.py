@@ -1,6 +1,6 @@
 """Core gateway orchestration.
 
-The gateway sits between the user (Telegram/HTTP) and Pi RPC.
+The gateway sits between the user (HTTP) and Pi RPC.
 It manages:
 - Message routing to Pi
 - Memory retrieval & writing (Karpathy-style markdown)

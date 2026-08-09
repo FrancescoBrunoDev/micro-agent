@@ -23,7 +23,7 @@ Most agent frameworks (Hermes, OpenClaw) are heavy — large system prompts, man
 ## Architecture
 
 ```
-Telegram / HTTP  ──→  FastAPI Gateway  ──→  Pi RPC (stdin/stdout)
+HTTP            ──→  FastAPI Gateway  ──→  Pi RPC (stdin/stdout)
                           ↕                       ↕
                    Markdown Memory           Local LLM
                    (grep-based)              (Ollama/vLLM/llama.cpp)
@@ -69,9 +69,6 @@ LLM_BASE_URL=http://strix-halo:8080/v1 \
 MICRO_AGENT_MODEL=step-3.7-flash \
 docker compose up -d
 
-# With Telegram bot
-TELEGRAM_BOT_TOKEN=your-token \
-TELEGRAM_WEBHOOK_SECRET=your-secret \
 docker compose up -d
 
 # Check logs
@@ -136,8 +133,6 @@ Pi reads provider configuration from `~/.pi/agent/models.json`. The Docker setup
 | `MICRO_AGENT_MODEL` | (empty → Pi default) | Model name |
 | `MICRO_AGENT_PROVIDER` | `openai` | Provider name |
 | `MICRO_AGENT_MEMORY_PATH` | `/data/memory` | Memory directory |
-| `TELEGRAM_BOT_TOKEN` | (empty) | Telegram bot token |
-| `TELEGRAM_WEBHOOK_SECRET` | (empty) | Webhook secret |
 
 ## Quickstart
 
@@ -206,16 +201,6 @@ curl -X POST http://localhost:8765/chat/stream \
   -d '{"message": "Write a Python script to fetch my IP"}'
 ```
 
-## Telegram Bot
-
-```bash
-# Set up webhook
-micro-agent --set-webhook https://your-domain.com/webhook/telegram
-
-# Environment variables:
-export TELEGRAM_BOT_TOKEN="your-bot-token"
-export TELEGRAM_WEBHOOK_SECRET="your-secret"
-```
 
 ## API Endpoints
 
@@ -224,7 +209,6 @@ export TELEGRAM_WEBHOOK_SECRET="your-secret"
 | `GET` | `/health` | Health check |
 | `POST` | `/chat` | Send message, get response |
 | `POST` | `/chat/stream` | Send message, stream response (SSE) |
-| `POST` | `/webhook/telegram` | Telegram bot webhook |
 | `POST` | `/memory` | Add memory entry |
 | `GET` | `/memory/search?q=query` | Search memory |
 | `GET` | `/memory` | List all memory |

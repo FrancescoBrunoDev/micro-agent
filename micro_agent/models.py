@@ -21,12 +21,6 @@ class ProviderConfig(BaseModel):
     api_key_env: str = ""
 
 
-class TelegramConfig(BaseModel):
-    bot_token: str = ""
-    webhook_secret: str = ""
-    allowed_chat_ids: list[int] = Field(default_factory=list)
-
-
 class MemoryConfig(BaseModel):
     path: str = "~/.micro-agent/memory"
     max_context_files: int = 3
@@ -51,7 +45,6 @@ class Config(BaseModel):
     gateway: GatewayConfig = Field(default_factory=GatewayConfig)
     pi: PiConfig = Field(default_factory=PiConfig)
     memory: MemoryConfig = Field(default_factory=MemoryConfig)
-    telegram: TelegramConfig = Field(default_factory=TelegramConfig)
     providers: list[ProviderConfig] = Field(default_factory=list)
 
 

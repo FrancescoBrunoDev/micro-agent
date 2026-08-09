@@ -2,7 +2,6 @@
 
 The gateway exposes:
 - POST /chat — Chat with the agent
-- POST /webhook/telegram — Telegram bot webhook
 - GET /health — Health check
 """
 
@@ -14,10 +13,10 @@ import logging
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import AsyncGenerator
+from typing import Any, AsyncGenerator
 
 import yaml
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from micro_agent.gateway import Gateway
@@ -71,11 +70,6 @@ def load_config(path: str | None = None) -> Config:
         config.pi.provider = os.environ["MICRO_AGENT_PROVIDER"]
     if os.environ.get("MICRO_AGENT_MEMORY_PATH"):
         config.memory.path = os.environ["MICRO_AGENT_MEMORY_PATH"]
-    if os.environ.get("TELEGRAM_BOT_TOKEN"):
-        config.telegram.bot_token = os.environ["TELEGRAM_BOT_TOKEN"]
-    if os.environ.get("TELEGRAM_WEBHOOK_SECRET"):
-        config.telegram.webhook_secret = os.environ["TELEGRAM_WEBHOOK_SECRET"]
-
     return config
 
 
@@ -85,9 +79,15 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     global _gateway
     config = load_config()
     _gateway = Gateway(config)
+
     try:
         await _gateway.start()
-        log.info("micro-agent gateway ready on %s:%d", config.gateway.host, config.gateway.port)
+
+        log.info(
+            "micro-agent gateway ready on %s:%d",
+            config.gateway.host,
+            config.gateway.port,
+        )
         yield
     finally:
         if _gateway:
@@ -147,42 +147,6 @@ async def chat_stream(request: ChatRequest):
     )
 
 
-@app.post("/webhook/telegram")
-async def telegram_webhook(request: Request):
-    """Telegram bot webhook endpoint."""
-    if _gateway is None:
-        raise HTTPException(status_code=503, detail="Gateway not ready")
-
-    secret = request.headers.get("X-Telegram-Bot-Api-Secret-Token", "")
-    payload = await request.json()
-
-    msg = payload.get("message", {})
-    chat_id = msg.get("chat", {}).get("id")
-    text = msg.get("text", "")
-
-    if not chat_id or not text:
-        return {"ok": False, "error": "no message"}
-
-    # Process through gateway
-    chat_req = ChatRequest(
-        message=text,
-        conversation_id=f"tg:{chat_id}",
-        user_id=str(chat_id),
-    )
-    response = await _gateway.process_message(chat_req)
-
-    # Send back to Telegram
-    from micro_agent.providers import TelegramProvider
-
-    tg = TelegramProvider(
-        bot_token=_gateway.config.telegram.bot_token,
-        webhook_secret=_gateway.config.telegram.webhook_secret,
-    )
-    await tg.send_message(chat_id, response.message)
-
-    return {"ok": True}
-
-
 @app.post("/memory")
 async def add_memory(title: str, content: str, mem_type: str = "semantic"):
     """Add an entry to persistent memory."""
@@ -238,11 +202,7 @@ def main():
     parser.add_argument("--port", "-p", type=int, default=0, help="Port to listen on")
     parser.add_argument("--host", default="", help="Host to bind to")
     parser.add_argument("--log-level", default="info", help="Logging level")
-    parser.add_argument(
-        "--set-webhook",
-        metavar="URL",
-        help="Register Telegram webhook and exit",
-    )
+
     parser.add_argument(
         "--init-memory",
         action="store_true",
@@ -274,20 +234,6 @@ def main():
 
         store = MemoryStore(config.memory.path)
         log.info("Memory initialized at %s", store.base_path)
-        return
-
-    if args.set_webhook:
-        from micro_agent.providers import TelegramProvider
-
-        tg = TelegramProvider(
-            bot_token=config.telegram.bot_token,
-            webhook_secret=config.telegram.webhook_secret,
-        )
-        success = asyncio.run(tg.set_webhook(args.set_webhook))
-        if success:
-            log.info("Telegram webhook set to %s", args.set_webhook)
-        else:
-            log.error("Failed to set Telegram webhook")
         return
 
     # Run the server

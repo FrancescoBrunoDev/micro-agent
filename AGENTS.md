@@ -7,7 +7,7 @@ Instructions for AI coding agents working on this codebase.
 micro-agent is a thin FastAPI gateway that wraps **Pi** (a Node.js coding agent CLI) in RPC mode, with markdown-based persistent memory. It's designed for self-hosted LLMs (llama.cpp, vLLM, Ollama).
 
 ```
-User (HTTP/Telegram) → FastAPI Gateway → Pi RPC (stdin/stdout) → Local LLM
+User (HTTP) → FastAPI Gateway → Pi RPC (stdin/stdout) → Local LLM
                               ↕                    ↕
                        Markdown Memory         Pi (Node.js)
                        (~/.micro-agent/)
@@ -22,7 +22,6 @@ micro_agent/
   pi_client.py     Pi subprocess manager (stdin/stdout JSONL)
   models.py        Pydantic config models
   memory.py        Markdown file store (grep-based retrieval)
-  providers.py     Telegram provider
 config.yaml        Default gateway config
 models.json        Pi provider/model config (mounted into container)
 docker-compose.yml Docker service definition
@@ -99,7 +98,6 @@ All in `.env` (read by docker-compose):
 - `OPENAI_API_KEY` — set to `not-needed` for local LLMs
 - `MICRO_AGENT_MODEL` — model ID
 - `MICRO_AGENT_PROVIDER` — provider name (default: `openai`)
-- `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET` — optional Telegram bot
 
 ## PI WEB (browser UI for Pi Coding Agent)
 

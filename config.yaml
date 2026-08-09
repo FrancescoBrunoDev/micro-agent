@@ -18,11 +18,6 @@ memory:
   max_context_files: 3
   auto_compact_threshold: 500
 
-# Telegram integration (optional)
-# telegram:
-#   bot_token: ${TELEGRAM_BOT_TOKEN}
-#   webhook_secret: "your-secret-here"
-#   allowed_chat_ids: []
 
 # Custom providers (passed to Pi)
 # providers:
