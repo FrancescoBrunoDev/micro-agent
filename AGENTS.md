@@ -157,24 +157,20 @@ On startup, `entrypoint.sh`:
 
 ### Networking (Coolify / Raspberry Pi)
 
-The container joins an explicit Docker network (`pi-web-net` by default) and has a
-stable hostname (`pi-web`), so:
+The container has a stable hostname (`pi-web`), so on the Docker network:
 
 - **Other services on the same network** reach pi-web at `http://pi-web:8504`
 - **pi-web reaches other services** by their hostnames (e.g. `http://my-llm:8080/v1`)
 - **Services on the host itself** (e.g. llama.cpp running directly on the Pi) are
   reachable at `http://host.docker.internal:<port>` (via `extra_hosts: host-gateway`)
 
-To join the **Coolify network** (so pi-web can reach other Coolify apps and be
-reached by them), set in Coolify env vars:
+On Coolify, the application is automatically attached to the `coolify` network, so
+pi-web can reach other Coolify apps by their internal hostnames and vice versa.
+For tailnet/LAN hosts that Docker DNS can't resolve (e.g. `raspberrypi2` via
+Tailscale), add the mapping in Coolify UI → container settings → **Extra Hosts**,
+e.g. `raspberrypi2:100.98.224.117`.
 
-```dotenv
-PI_WEB_NETWORK=coolify
-PI_WEB_NETWORK_EXTERNAL=true
-```
-
-Then pi-web is reachable at `http://pi-web:8504` from other services on the
-Coolify network, and externally via `hostname:port` (e.g. `http://<pi-ip>:8505`).
+Externally, pi-web is reachable at `http://<pi-ip>:8505` (0.0.0.0 binding).
 
 ### Files
 
