@@ -37,11 +37,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install rclone (for mounting KDrive / other cloud storage via WebDAV)
-RUN curl -fsSL https://downloads.rclone.org/rclone-current-linux-amd64.zip -o /tmp/rclone.zip \
+# TARGETARCH is provided by BuildKit — works on amd64 AND arm64 hosts (e.g. Coolify on ARM)
+ARG TARGETARCH
+RUN RCLONE_ARCH="${TARGETARCH:-amd64}" \
+    && curl -fsSL "https://downloads.rclone.org/rclone-current-linux-${RCLONE_ARCH}.zip" -o /tmp/rclone.zip \
     && apt-get install -y --no-install-recommends unzip \
-    && cd /tmp && unzip rclone.zip && cp rclone-*-linux-amd64/rclone /usr/local/bin/ \
+    && cd /tmp && unzip rclone.zip \
+    && cp rclone-*-linux-${RCLONE_ARCH}/rclone /usr/local/bin/ \
     && chmod +x /usr/local/bin/rclone \
-    && rm -rf /tmp/rclone.zip /tmp/rclone-*-linux-amd64 \
+    && rm -rf /tmp/rclone.zip /tmp/rclone-*-linux-${RCLONE_ARCH} \
     && apt-get purge -y unzip && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
