@@ -33,7 +33,16 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Install tini + curl + git for healthchecks and repo work
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    tini curl ca-certificates git \
+    tini curl ca-certificates git fuse3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install rclone (for mounting KDrive / other cloud storage via WebDAV)
+RUN curl -fsSL https://downloads.rclone.org/rclone-current-linux-amd64.zip -o /tmp/rclone.zip \
+    && apt-get install -y --no-install-recommends unzip \
+    && cd /tmp && unzip rclone.zip && cp rclone-*-linux-amd64/rclone /usr/local/bin/ \
+    && chmod +x /usr/local/bin/rclone \
+    && rm -rf /tmp/rclone.zip /tmp/rclone-*-linux-amd64 \
+    && apt-get purge -y unzip && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install GitHub CLI (gh) from the official apt repo

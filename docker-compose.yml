@@ -16,6 +16,14 @@ services:
       dockerfile: docker/pi-web/Dockerfile
     container_name: ${PI_WEB_CONTAINER_PREFIX:-pi-web}
     restart: unless-stopped
+    # FUSE is required for rclone mount (KDrive access via WebDAV).
+    # On Coolify these can also be set in the container settings UI.
+    devices:
+      - /dev/fuse:/dev/fuse
+    cap_add:
+      - SYS_ADMIN
+    security_opt:
+      - apparmor:unconfined
     ports:
       - "${PI_WEB_BIND_ADDR:-127.0.0.1}:${PI_WEB_HOST_PORT:-8505}:8504"
     volumes:
@@ -36,6 +44,13 @@ services:
       - GH_TOKEN=${GH_TOKEN:-}
       - GH_USER_NAME=${GH_USER_NAME:-}
       - GH_USER_EMAIL=${GH_USER_EMAIL:-}
+      # KDrive (Infomaniak) via WebDAV + rclone — optional.
+      # Endpoint: https://<kDriveId>.connect.kdrive.infomaniak.com
+      # Get an app password at: https://account.infomaniak.com → Security → App passwords
+      - KDRIVE_URL=${KDRIVE_URL:-}
+      - KDRIVE_USER=${KDRIVE_USER:-}
+      - KDRIVE_PASS=${KDRIVE_PASS:-}
+      - KDRIVE_MOUNT=${KDRIVE_MOUNT:-/data/kdrive}
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8504/api/pi-web/runtime >/dev/null"]
       interval: 10s

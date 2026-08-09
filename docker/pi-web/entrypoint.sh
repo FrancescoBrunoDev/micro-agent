@@ -140,6 +140,39 @@ EOF
     echo "settings.json created: enabledModels=[${MODEL_PATTERN}]"
 fi
 
+# ── Mount KDrive via rclone (WebDAV) ────────────────────────────────────
+# Requires KDRIVE_URL + KDRIVE_USER + KDRIVE_PASS (app password).
+# Mounts at KDRIVE_MOUNT (default /data/kdrive) using FUSE.
+if [ -n "${KDRIVE_URL}" ] && [ -n "${KDRIVE_USER}" ] && [ -n "${KDRIVE_PASS}" ]; then
+    KDRIVE_MOUNT="${KDRIVE_MOUNT:-/data/kdrive}"
+    echo "Mounting KDrive (${KDRIVE_URL}) at ${KDRIVE_MOUNT}..."
+    mkdir -p "${KDRIVE_MOUNT}"
+    # Configure rclone remote 'kdrive' (webdav backend) from env vars
+    RCLONE_CONFIG="/data/config/rclone/rclone.conf"
+    mkdir -p "$(dirname "$RCLONE_CONFIG")"
+    cat > "$RCLONE_CONFIG" << EOF
+[kdrive]
+type = webdav
+url = ${KDRIVE_URL}
+vendor = other
+user = ${KDRIVE_USER}
+pass = $(rclone obscure "${KDRIVE_PASS}" 2>/dev/null || echo "${KDRIVE_PASS}")
+EOF
+    export RCLONE_CONFIG="$RCLONE_CONFIG"
+    # Mount in background
+    rclone mount kdrive: "${KDRIVE_MOUNT}" --allow-other --vfs-cache-mode writes --daemon-timeout 0 &
+    # Wait for mount to become ready
+    for i in $(seq 1 15); do
+        if mountpoint -q "${KDRIVE_MOUNT}" 2>/dev/null || [ -n "$(ls -A "${KDRIVE_MOUNT}" 2>/dev/null)" ]; then
+            echo "KDrive mounted at ${KDRIVE_MOUNT}"
+            break
+        fi
+        sleep 1
+    done
+else
+    echo "KDrive not configured (set KDRIVE_URL/KDRIVE_USER/KDRIVE_PASS to enable)"
+fi
+
 # ── Start sessiond in the background (manages persistent Pi sessions) ──
 echo "Starting pi-web-sessiond..."
 pi-web-sessiond &
