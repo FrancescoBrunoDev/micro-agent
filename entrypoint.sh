@@ -104,6 +104,19 @@ else
   echo "kDrive not configured — vault stays empty (set KDRIVE_URL/KDRIVE_USER/KDRIVE_PASS)"
 fi
 
+# ── sshd (pubkey auth from env, no passwords) ───────────────────────────
+if [ -n "${SSH_PUBLIC_KEY:-}" ]; then
+  mkdir -p /data/home/.ssh /data/config/ssh /run/sshd
+  printf '%s\n' "$SSH_PUBLIC_KEY" > /data/home/.ssh/authorized_keys
+  chmod 700 /data/home/.ssh && chmod 600 /data/home/.ssh/authorized_keys
+  [ -f /data/config/ssh/ssh_host_ed25519_key ] || \
+    ssh-keygen -t ed25519 -N '' -q -f /data/config/ssh/ssh_host_ed25519_key
+  /usr/sbin/sshd -f /etc/ssh/sshd_config
+  echo "sshd listening on port 22"
+else
+  echo "SSH disabled (set SSH_PUBLIC_KEY to enable)"
+fi
+
 # ── herdr server + first-run bootstrap ────────────────────────────────────
 # Pre-trust the vault dir so pi does not prompt on first run.
 mkdir -p "$PI_CODING_AGENT_DIR"
