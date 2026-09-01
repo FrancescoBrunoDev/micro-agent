@@ -7,8 +7,8 @@ runs on Coolify or any Docker host, independent of any developer machine.
 
 ```bash
 cp .env.example .env
-# set LLM_BASE_URL (your LLM) and KDRIVE_URL/USER/PASS (app password from
-# account.infomaniak.com → Security → App passwords)
+# set LLM_BASE_URL (your LLM), KDRIVE_URL/USER/PASS (app password from
+# account.infomaniak.com → Security → App passwords) and SSH_PUBLIC_KEY
 
 docker compose up -d --build
 

@@ -3,8 +3,8 @@
 ## What this is
 
 One portable Docker container: **herdr + pi + kDrive sync**. It runs on Coolify
-or any Docker host and is independent of the developer machine. No web UI, no
-ports — the container is an agent host you attach to.
+or any Docker host and is independent of the developer machine. No web UI —
+the only exposed port is SSH (22 inside, `${SSH_PORT:-2222}` outside).
 
 ```
 Docker container (any host)
@@ -75,11 +75,12 @@ container is just another kDrive client, so edits merge through the cloud.
 | `PI_PROVIDER` | `local` | Provider name in pi's models.json |
 | `PI_MODEL_NAME` | (first from /models) | Model id |
 | `KDRIVE_URL` | — | WebDAV endpoint `https://<id>.connect.kdrive.infomaniak.com` |
-| `KDRIVE_USER` | — | kDrive login (app password) |
+| `KDRIVE_USER` | — | kDrive login (email) |
 | `KDRIVE_PASS` | — | App password |
 | `KDRIVE_VAULT_PATH` | `Obsidian/Francesco_Vault` | Vault path relative to kDrive root |
 | `KDRIVE_SYNC_INTERVAL` | `60` | Bisync loop interval (seconds) |
 | `SSH_PUBLIC_KEY` | — | Authorized key(s) for root login; empty disables sshd |
+| `SSH_PORT` | `2222` | Host port mapped to sshd inside the container |
 
 ## History
 
