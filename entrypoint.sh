@@ -56,10 +56,23 @@ const mkModel = (id) => ({
   try { settings = JSON.parse(fs.readFileSync(settingsFile, "utf8")); } catch {}
   settings.defaultProvider = provider;
   settings.defaultModel = model;
+  // pi installs these at startup into ~/.pi/agent/npm and ~/.pi/agent/git.
+  // Excluded on purpose: @llblab/pi-telegram (telegram bridge).
+  settings.packages = [
+    "npm:pi-docparser",
+    "npm:pi-observability",
+    "npm:@juicesharp/rpiv-web-tools",
+    "git:github.com/DietrichGebert/ponytail",
+  ];
   fs.writeFileSync(settingsFile, JSON.stringify(settings, null, 2));
   console.log(`pi configured: provider=${provider} model=${model} baseUrl=${baseUrl}`);
 })();
 NODE
+
+# ── agent profile: vendored skills + prompts (omarchy & telegram excluded) ──
+mkdir -p "$PI_CODING_AGENT_DIR/skills" "$PI_CODING_AGENT_DIR/prompts"
+cp -r /opt/pi-profile/skills/. "$PI_CODING_AGENT_DIR/skills/"
+cp -r /opt/pi-profile/prompts/. "$PI_CODING_AGENT_DIR/prompts/"
 
 # ── kDrive (Infomaniak) via rclone WebDAV bisync ──────────────────────────
 # The official kDrive client is a Qt GUI app — not runnable headless.

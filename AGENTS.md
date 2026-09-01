@@ -50,6 +50,15 @@ herdr agent prompt vault "fai X" --wait --timeout 120000
 The desktop's own kDrive client and Obsidian keep working as before — the
 container is just another kDrive client, so edits merge through the cloud.
 
+## Agent profile
+
+Skills and prompts come from `pi-profile/` in this repo (vendored into the
+image, copied to `/data/home/.pi/agent/` at every start — the repo is the
+source of truth). Excluded on purpose: `omarchy`*, `telegram-bridge`,
+`generated-control-surface`, `generative-apps`, `@llblab/pi-telegram`.
+Vault-local skills (`endu-api`, `suunto-api`, `utmb-world` in
+`Francesco_Vault/.pi/skills/`) arrive automatically through kDrive sync.
+
 ## Pitfalls
 
 - **models.json schema**: `cost` must have ALL FOUR fields — `input`, `output`,

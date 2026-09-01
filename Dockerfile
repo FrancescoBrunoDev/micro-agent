@@ -37,6 +37,9 @@ ENV HOME=/data/home \
 
 WORKDIR /workspace
 
+# Vendored pi agent profile: global skills + prompts (omarchy & telegram excluded)
+COPY pi-profile /opt/pi-profile
+
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
