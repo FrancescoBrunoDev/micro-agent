@@ -88,12 +88,12 @@ EOF
     first=1
     while true; do
       if [ "$first" = 1 ]; then
-        if rclone bisync "kdrive:${VAULT_SUBPATH}" "$VAULT_LOCAL" --resync --create-empty-src-dirs; then
+        if rclone bisync "kdrive:${VAULT_SUBPATH}" "$VAULT_LOCAL" --resync; then
           first=0
           echo "kDrive initial sync done"
         fi
       else
-        rclone bisync "kdrive:${VAULT_SUBPATH}" "$VAULT_LOCAL" --create-empty-src-dirs || true
+        rclone bisync "kdrive:${VAULT_SUBPATH}" "$VAULT_LOCAL" || true
       fi
       sleep "${KDRIVE_SYNC_INTERVAL:-60}"
     done
