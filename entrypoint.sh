@@ -71,17 +71,16 @@ mkdir -p "$VAULT_LOCAL"
 if [ -n "${KDRIVE_URL:-}" ] && [ -n "${KDRIVE_USER:-}" ] && [ -n "${KDRIVE_PASS:-}" ]; then
   export RCLONE_CONFIG=/data/config/rclone/rclone.conf
   mkdir -p "$(dirname "$RCLONE_CONFIG")"
-  if [ ! -f "$RCLONE_CONFIG" ]; then
-    cat > "$RCLONE_CONFIG" <<EOF
+  # Rewritten every start so env changes (e.g. rotated password) take effect.
+  cat > "$RCLONE_CONFIG" <<EOF
 [kdrive]
 type = webdav
 url = ${KDRIVE_URL}
-vendor = other
+vendor = owncloud
 user = ${KDRIVE_USER}
 pass = $(rclone obscure "${KDRIVE_PASS}")
 EOF
-    chmod 600 "$RCLONE_CONFIG"
-  fi
+  chmod 600 "$RCLONE_CONFIG"
   # ponytail: dumb periodic bisync; on conflict bisync errors and we retry
   # next loop. A persistent conflict needs manual --resync (log will show it).
   (
