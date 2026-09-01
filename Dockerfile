@@ -5,8 +5,17 @@
 FROM node:22-bookworm
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git curl ca-certificates rclone jq tini bash openssh-server \
-    && rm -rf /var/lib/apt/lists/* \
+    git curl ca-certificates jq tini bash openssh-server \
+    && rm -rf /var/lib/apt/lists/*
+
+# rclone from rclone.org: bookworm's 1.61 is too old for kDrive WebDAV bisync
+# ("modification time support is missing"). Arch-aware for arm64 hosts.
+RUN set -eux; \
+    case "$(uname -m)" in x86_64) A=amd64 ;; aarch64) A=arm64 ;; *) echo "unsupported arch: $(uname -m)"; exit 1 ;; esac; \
+    curl -fsSL "https://downloads.rclone.org/rclone-current-linux-${A}.deb" -o /tmp/rclone.deb \
+    && apt-get install -y /tmp/rclone.deb \
+    && rm /tmp/rclone.deb \
+    && rclone version | head -1 \
     && printf 'Port 22\nPermitRootLogin prohibit-password\nPasswordAuthentication no\nKbdInteractiveAuthentication no\nPubkeyAuthentication yes\nAuthorizedKeysFile .ssh/authorized_keys\nHostKey /data/config/ssh/ssh_host_ed25519_key\nPidFile /run/sshd.pid\n' > /etc/ssh/sshd_config
 
 # Pi coding agent (official install: --ignore-scripts, no native build needed)
