@@ -83,6 +83,9 @@ EOF
   chmod 600 "$RCLONE_CONFIG"
   # ponytail: dumb periodic bisync; on conflict bisync errors and we retry
   # next loop. A persistent conflict needs manual --resync (log will show it).
+  # Stale lock files from crashed runs would block bisync forever: drop them
+  # at startup (we are the only bisync writer in this container).
+  rm -f /data/home/.cache/rclone/bisync/*.lck
   (
     first=1
     while true; do
