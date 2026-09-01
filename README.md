@@ -12,11 +12,15 @@ cp .env.example .env
 
 docker compose up -d --build
 
-# attach to the herdr TUI (see pi working on the vault)
-docker exec -it micro-agent herdr
+# attach via SSH (key from .env → authorized_keys inside the container)
+ssh -i ~/.ssh/id_ed25519 -p 2222 root@<host>
+# then: herdr
 
-# or drive pi headlessly
-docker exec -it micro-agent herdr agent prompt vault "aggiorna il piano di allenamento" --wait
+# or attach the herdr TUI straight from the desktop (port via ~/.ssh/config)
+herdr --remote root@<host>
+
+# drive pi headlessly
+ssh -p 2222 root@<host> herdr agent prompt vault "aggiorna il piano di allenamento" --wait
 ```
 
 The vault is bidirectionally synced with kDrive every 60s (rclone WebDAV
@@ -24,8 +28,7 @@ bisync). Your desktop's own kDrive client keeps Obsidian working as before.
 
 ## Coolify
 
-- No ports, no domains — it's an agent host, not a web app. Attach via
-  Coolify's container terminal (`docker exec -it ... herdr`).
+- Expose port **2222 → 22** (ssh). No web ports needed — it's an agent host.
 - Attach a **persistent volume** to `/data` (pi sessions, herdr layout,
   rclone config, vault copy).
 - Set the env vars above; `LLM_BASE_URL` can point to another Coolify service

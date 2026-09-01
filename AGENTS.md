@@ -15,7 +15,8 @@ Docker container (any host)
 └── pi (Node.js agent) — sessions in /data/home/.pi/agent/sessions/vault/
 ```
 
-All persistent state is under `/data` (single named volume).
+All persistent state is under `/data` (single named volume). SSH access:
+sshd with pubkey auth only (`SSH_PUBLIC_KEY`, port 22, exposed as `${SSH_PORT:-2222}`).
 
 ## Entrypoint behavior (`entrypoint.sh`)
 
@@ -25,8 +26,9 @@ All persistent state is under `/data` (single named volume).
    `defaultModel` so pi starts on the right model with no interactive picker.
 3. Configures rclone remote `kdrive` (WebDAV) and starts a bisync loop
    (`KDRIVE_SYNC_INTERVAL`, default 60s). First sync is `--resync`.
-4. Pre-trusts the vault dir in `trust.json` so pi doesn't prompt.
-5. Starts `herdr server`; on first run only, creates workspace `vault` and
+4. Starts sshd if `SSH_PUBLIC_KEY` is set (host key + authorized_keys in /data).
+5. Pre-trusts the vault dir in `trust.json` so pi doesn't prompt.
+6. Starts `herdr server`; on first run only, creates workspace `vault` and
    starts `pi -n vault -c` (`--session-dir /data/home/.pi/agent/sessions/vault`)
    in its root pane. Later restarts: herdr restores the layout itself and `-c`
    resumes the most recent pi session.
@@ -34,8 +36,15 @@ All persistent state is under `/data` (single named volume).
 ## Attach & use
 
 ```bash
-docker exec -it micro-agent herdr                 # TUI: see panes, agents
-docker exec -it micro-agent herdr agent prompt vault "fai X" --wait --timeout 120000
+ssh -i ~/.ssh/id_ed25519 -p 2222 root@<container-host>   # then: herdr
+# or attach the herdr TUI straight from the desktop:
+herdr --remote root@<container-host>  # (ssh port configurable in ~/.ssh/config)
+```
+
+Inside the container:
+
+```bash
+herdr agent prompt vault "fai X" --wait --timeout 120000
 ```
 
 The desktop's own kDrive client and Obsidian keep working as before — the
@@ -70,6 +79,7 @@ container is just another kDrive client, so edits merge through the cloud.
 | `KDRIVE_PASS` | — | App password |
 | `KDRIVE_VAULT_PATH` | `Obsidian/Francesco_Vault` | Vault path relative to kDrive root |
 | `KDRIVE_SYNC_INTERVAL` | `60` | Bisync loop interval (seconds) |
+| `SSH_PUBLIC_KEY` | — | Authorized key(s) for root login; empty disables sshd |
 
 ## History
 

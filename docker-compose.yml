@@ -29,6 +29,9 @@ services:
       - KDRIVE_PASS=${KDRIVE_PASS:-}
       - KDRIVE_VAULT_PATH=${KDRIVE_VAULT_PATH:-Obsidian/Francesco_Vault}
       - KDRIVE_SYNC_INTERVAL=${KDRIVE_SYNC_INTERVAL:-60}
+      - SSH_PUBLIC_KEY=${SSH_PUBLIC_KEY:-}
+    ports:
+      - "${SSH_PORT:-2222}:22"
     healthcheck:
       test: ["CMD-SHELL", "herdr status server 2>/dev/null | grep -q 'status: running'"]
       interval: 30s

@@ -5,8 +5,9 @@
 FROM node:22-bookworm
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git curl ca-certificates rclone jq tini bash \
-    && rm -rf /var/lib/apt/lists/*
+    git curl ca-certificates rclone jq tini bash openssh-server \
+    && rm -rf /var/lib/apt/lists/* \
+    && printf 'Port 22\nPermitRootLogin prohibit-password\nPasswordAuthentication no\nKbdInteractiveAuthentication no\nPubkeyAuthentication yes\nAuthorizedKeysFile .ssh/authorized_keys\nHostKey /data/config/ssh/ssh_host_ed25519_key\nPidFile /run/sshd.pid\n' > /etc/ssh/sshd_config
 
 # Pi coding agent (official install: --ignore-scripts, no native build needed)
 RUN npm install -g --ignore-scripts --no-audit --no-fund @earendil-works/pi-coding-agent \
