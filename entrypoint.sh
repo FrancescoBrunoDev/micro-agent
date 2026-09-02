@@ -81,6 +81,9 @@ const mkModel = (id) => ({
 NODE
 
 # ── agent profile: vendored skills + prompts (omarchy & telegram excluded) ──
+# rm -rf first: a previous deploy left broken symlinks, and cp cannot
+# replace a non-directory with a directory. Repo is the source of truth.
+rm -rf "$PI_CODING_AGENT_DIR/skills" "$PI_CODING_AGENT_DIR/prompts"
 mkdir -p "$PI_CODING_AGENT_DIR/skills" "$PI_CODING_AGENT_DIR/prompts"
 cp -r /opt/pi-profile/skills/. "$PI_CODING_AGENT_DIR/skills/"
 cp -r /opt/pi-profile/prompts/. "$PI_CODING_AGENT_DIR/prompts/"
