@@ -7,8 +7,9 @@ runs on Coolify or any Docker host, independent of any developer machine.
 
 ```bash
 cp .env.example .env
-# set LLM_BASE_URL (your LLM), KDRIVE_URL/USER/PASS (app password from
-# account.infomaniak.com → Security → App passwords) and SSH_PUBLIC_KEY
+# set LLAMACPP_BASE_URL (your llama.cpp), KDRIVE_URL/USER/PASS (app password
+# from account.infomaniak.com → Security → App passwords), SSH_PUBLIC_KEY,
+# OPENCODE_GO_API_KEY and GH_TOKEN
 
 docker compose up -d --build
 
@@ -31,7 +32,7 @@ bisync). Your desktop's own kDrive client keeps Obsidian working as before.
 - Expose port **2222 → 22** (ssh). No web ports needed — it's an agent host.
 - Attach a **persistent volume** to `/data` (pi sessions, herdr layout,
   rclone config, vault copy).
-- Set the env vars above; `LLM_BASE_URL` can point to another Coolify service
-  by hostname.
+- Set the env vars above; `LLAMACPP_BASE_URL` can point to another Coolify
+  service by hostname.
 
 See [AGENTS.md](AGENTS.md) for the full architecture and pitfalls.
