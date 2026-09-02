@@ -20,10 +20,8 @@ services:
     volumes:
       - micro-agent-data:/data
     environment:
-      - LLM_BASE_URL=${LLM_BASE_URL:-http://host.docker.internal:8080/v1}
-      - LLM_API_KEY=${LLM_API_KEY:-not-needed}
-      - PI_PROVIDER=${PI_PROVIDER:-local}
-      - PI_MODEL_NAME=${PI_MODEL_NAME:-}
+      - LLAMACPP_BASE_URL=${LLAMACPP_BASE_URL:-http://host.docker.internal:8080/v1}
+      - OPENCODE_GO_API_KEY=${OPENCODE_GO_API_KEY:-not-needed}
       - KDRIVE_URL=${KDRIVE_URL:-}
       - KDRIVE_USER=${KDRIVE_USER:-}
       - KDRIVE_PASS=${KDRIVE_PASS:-}

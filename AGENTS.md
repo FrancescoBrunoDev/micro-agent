@@ -21,9 +21,10 @@ sshd with pubkey auth only (`SSH_PUBLIC_KEY`, port 22, exposed as `${SSH_PORT:-2
 ## Entrypoint behavior (`entrypoint.sh`)
 
 1. `herdr/config.toml` with `onboarding = false` (first run)
-2. Generates `models.json` + `settings.json` for pi from env (`LLM_BASE_URL`,
-   `PI_PROVIDER`, `PI_MODEL_NAME`). `settings.json` sets `defaultProvider` and
-   `defaultModel` so pi starts on the right model with no interactive picker.
+2. Generates `models.json` + `settings.json` for pi from env: provider
+   `llamacpp` pointing at `LLAMACPP_BASE_URL` with `OPENCODE_GO_API_KEY`,
+   models auto-discovered from `/v1/models` (no hardcoded model id;
+   `defaultModel` is set once and then preserved across restarts).
 3. Configures rclone remote `kdrive` (WebDAV) and starts a bisync loop
    (`KDRIVE_SYNC_INTERVAL`, default 60s). First sync is `--resync`.
 4. Starts sshd if `SSH_PUBLIC_KEY` is set (host key + authorized_keys in /data).
@@ -79,10 +80,8 @@ Vault-local skills (`endu-api`, `suunto-api`, `utmb-world` in
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `LLM_BASE_URL` | `http://host.docker.internal:8080/v1` | OpenAI-compatible LLM endpoint |
-| `LLM_API_KEY` | `not-needed` | API key for the LLM |
-| `PI_PROVIDER` | `local` | Provider name in pi's models.json |
-| `PI_MODEL_NAME` | (first from /models) | Model id |
+| `LLAMACPP_BASE_URL` | `http://host.docker.internal:8080/v1` | llama.cpp OpenAI-compatible endpoint |
+| `OPENCODE_GO_API_KEY` | `not-needed` | API key for that endpoint |
 | `KDRIVE_URL` | — | WebDAV endpoint `https://<id>.connect.kdrive.infomaniak.com` |
 | `KDRIVE_USER` | — | kDrive login (email) |
 | `KDRIVE_PASS` | — | App password |

@@ -31,25 +31,25 @@ SETTINGS_FILE="$PI_CODING_AGENT_DIR/settings.json"
 node - "$MODELS_FILE" "$SETTINGS_FILE" <<'NODE'
 const fs = require("fs");
 const [modelsFile, settingsFile] = process.argv.slice(2);
-const baseUrl = (process.env.LLM_BASE_URL || "http://host.docker.internal:8080/v1").replace(/\/+$/, "");
-const provider = process.env.PI_PROVIDER || "local";
-const apiKey = process.env.LLM_API_KEY || process.env.OPENAI_API_KEY || "not-needed";
+const baseUrl = (process.env.LLAMACPP_BASE_URL || "http://host.docker.internal:8080/v1").replace(/\/+$/, "");
+const provider = "llamacpp";
+const apiKey = process.env.OPENCODE_GO_API_KEY || "not-needed";
 const mkModel = (id) => ({
   id, name: id, input: ["text"], contextWindow: 131072, maxTokens: 8192,
   cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
 });
 (async () => {
-  let model = process.env.PI_MODEL_NAME || null;
-  if (!model) {
-    try {
-      const res = await fetch(`${baseUrl}/models`, {
-        headers: { Authorization: `Bearer ${apiKey}` },
-        signal: AbortSignal.timeout(10000),
-      });
-      model = (await res.json())?.data?.[0]?.id || null;
-    } catch {}
-  }
-  model ||= "default";
+  // Discover served models from llama.cpp; pi never needs a hardcoded model id.
+  let models = null;
+  try {
+    const res = await fetch(`${baseUrl}/models`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(10000),
+    });
+    const ids = ((await res.json())?.data || []).map((m) => m.id).filter(Boolean);
+    if (ids.length) models = ids.map(mkModel);
+  } catch {}
+  models ||= [mkModel("default")];
   fs.writeFileSync(modelsFile, JSON.stringify({
     providers: { [provider]: {
       baseUrl, api: "openai-completions", apiKey,
@@ -59,13 +59,14 @@ const mkModel = (id) => ({
         supportsUsageInStreaming: false,
         maxTokensField: "max_tokens",
       },
-      models: [mkModel(model)],
+      models,
     }},
   }, null, 2));
   let settings = {};
   try { settings = JSON.parse(fs.readFileSync(settingsFile, "utf8")); } catch {}
   settings.defaultProvider = provider;
-  settings.defaultModel = model;
+  // Only pick a default once; afterwards pi's own choice is preserved.
+  if (!settings.defaultModel) settings.defaultModel = models[0].id;
   // pi installs these at startup into ~/.pi/agent/npm and ~/.pi/agent/git.
   // Excluded on purpose: @llblab/pi-telegram (telegram bridge).
   settings.packages = [
@@ -75,7 +76,7 @@ const mkModel = (id) => ({
     "git:github.com/DietrichGebert/ponytail",
   ];
   fs.writeFileSync(settingsFile, JSON.stringify(settings, null, 2));
-  console.log(`pi configured: provider=${provider} model=${model} baseUrl=${baseUrl}`);
+  console.log(`pi configured: provider=${provider} models=${models.map((m) => m.id).join(",")} baseUrl=${baseUrl}`);
 })();
 NODE
 
