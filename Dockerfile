@@ -7,8 +7,10 @@ FROM node:22-bookworm
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git curl ca-certificates jq tini bash openssh-server \
     && rm -rf /var/lib/apt/lists/* \
-    # root's real home is /data (sshd/herdr derive HOME from passwd, not the ENV)
-    && usermod -d /data/home root && mkdir -p /data/home
+    # root's real home is /data (sshd/herdr derive HOME from passwd, not the ENV).
+    # usermod fails inside a build (root is "in use" by the build process), so edit passwd directly.
+    && sed -i 's|^\(root:[^:]*:[^:]*:[^:]*:[^:]*:\)[^:]*|\1/data/home|' /etc/passwd \
+    && mkdir -p /data/home
 
 # rclone from rclone.org: bookworm's 1.61 is too old for kDrive WebDAV bisync
 # ("modification time support is missing"). Arch-aware for arm64 hosts.
