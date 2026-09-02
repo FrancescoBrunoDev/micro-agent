@@ -6,7 +6,9 @@ FROM node:22-bookworm
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git curl ca-certificates jq tini bash openssh-server \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    # root's real home is /data (sshd/herdr derive HOME from passwd, not the ENV)
+    && usermod -d /data/home root && mkdir -p /data/home
 
 # rclone from rclone.org: bookworm's 1.61 is too old for kDrive WebDAV bisync
 # ("modification time support is missing"). Arch-aware for arm64 hosts.
@@ -16,7 +18,7 @@ RUN set -eux; \
     && apt-get install -y /tmp/rclone.deb \
     && rm /tmp/rclone.deb \
     && rclone version | head -1 \
-    && printf 'Port 22\nPermitRootLogin prohibit-password\nPasswordAuthentication no\nKbdInteractiveAuthentication no\nPubkeyAuthentication yes\nAuthorizedKeysFile /data/home/.ssh/authorized_keys\nHostKey /data/config/ssh/ssh_host_ed25519_key\nPidFile /run/sshd.pid\n' > /etc/ssh/sshd_config
+    && printf 'Port 22\nPermitRootLogin prohibit-password\nPasswordAuthentication no\nKbdInteractiveAuthentication no\nPubkeyAuthentication yes\nAuthorizedKeysFile /data/home/.ssh/authorized_keys\nHostKey /data/config/ssh/ssh_host_ed25519_key\nPidFile /run/sshd.pid\nSetEnv PI_CODING_AGENT_DIR=/data/home/.pi/agent\n' > /etc/ssh/sshd_config
 
 # Pi coding agent (official install: --ignore-scripts, no native build needed)
 RUN npm install -g --ignore-scripts --no-audit --no-fund @earendil-works/pi-coding-agent \

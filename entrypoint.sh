@@ -145,12 +145,15 @@ for i in $(seq 1 30); do
 done
 
 # First run only: create the vault workspace with a persistent pi pane.
-# On later restarts herdr restores the layout from its own session state.
-WORKSPACES=$(herdr workspace list 2>/dev/null || echo '{"result":{"workspaces":[]}}')
-COUNT=$(printf '%s' "$WORKSPACES" | jq -r '.result.workspaces | length // 0')
-if [ "${COUNT:-0}" = "0" ]; then
+# On later restarts herdr restores the layout from its own session state;
+# this guard is idempotent on the label so it also self-heals after a
+# broken restore. Panes get explicit env because herdr/spawned shells
+# derive HOME from passwd, not from the server environment.
+VAULT_WS=$(herdr workspace list 2>/dev/null | jq -r '[.result.workspaces[] | select(.label == "vault")] | length')
+if [ "${VAULT_WS:-0}" = "0" ]; then
   herdr integration install pi >/dev/null 2>&1 || true
-  CREATED=$(herdr workspace create --cwd "$VAULT_LOCAL" --label vault)
+  CREATED=$(herdr workspace create --cwd "$VAULT_LOCAL" --label vault \
+    --env HOME=/data/home --env PI_CODING_AGENT_DIR=/data/home/.pi/agent)
   PANE=$(printf '%s' "$CREATED" | jq -r '.result.root_pane.pane_id // empty')
   if [ -n "$PANE" ]; then
     # -c continues the most recent session: same pane command on restore = resume.
