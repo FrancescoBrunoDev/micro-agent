@@ -76,6 +76,15 @@ const mkModel = (id) => ({
     "git:github.com/DietrichGebert/ponytail",
   ];
   fs.writeFileSync(settingsFile, JSON.stringify(settings, null, 2));
+  // Built-in providers (opencode-go, ...) resolve keys from auth.json, not
+  // from the shell env — sshd sessions don't inherit container env vars.
+  const authFile = `${process.env.PI_CODING_AGENT_DIR}/auth.json`;
+  let auth = {};
+  try { auth = JSON.parse(fs.readFileSync(authFile, "utf8")); } catch {}
+  if (process.env.OPENCODE_API_KEY) {
+    auth["opencode-go"] = { type: "api_key", key: process.env.OPENCODE_API_KEY };
+  }
+  fs.writeFileSync(authFile, JSON.stringify(auth, null, 2));
   console.log(`pi configured: provider=${provider} models=${models.map((m) => m.id).join(",")} baseUrl=${baseUrl}`);
 })();
 NODE
