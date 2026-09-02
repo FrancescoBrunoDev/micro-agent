@@ -30,6 +30,9 @@ services:
       - KDRIVE_VAULT_PATH=${KDRIVE_VAULT_PATH:-Obsidian/Francesco_Vault}
       - KDRIVE_SYNC_INTERVAL=${KDRIVE_SYNC_INTERVAL:-60}
       - SSH_PUBLIC_KEY=${SSH_PUBLIC_KEY:-}
+      - GH_TOKEN=${GH_TOKEN:-}
+      - GH_USER_NAME=${GH_USER_NAME:-}
+      - GH_USER_EMAIL=${GH_USER_EMAIL:-}
     ports:
       - "${SSH_PORT:-2222}:22"
     healthcheck:

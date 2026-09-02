@@ -5,7 +5,7 @@
 FROM node:22-bookworm
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git curl ca-certificates jq tini bash openssh-server \
+    git curl ca-certificates jq tini bash openssh-server gh \
     && rm -rf /var/lib/apt/lists/* \
     # root's real home is /data (sshd/herdr derive HOME from passwd, not the ENV).
     # usermod fails inside a build (root is "in use" by the build process), so edit passwd directly.

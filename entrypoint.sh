@@ -11,6 +11,16 @@ mkdir -p "$XDG_CONFIG_HOME/herdr" "$PI_CODING_AGENT_DIR" /data/kdrive
 # ── herdr config (first run) ──────────────────────────────────────────────
 [ -f "$HERDR_CONFIG_PATH" ] || printf 'onboarding = false\n' > "$HERDR_CONFIG_PATH"
 
+# ── git/gh: token auth + identity ─────────────────────────────────────────
+# gh uses GH_TOKEN as its login automatically; teach git to go through it.
+git config --global --add safe.directory '*' 2>/dev/null || true
+if [ -n "${GH_TOKEN:-}" ]; then
+  git config --global credential.helper '!gh auth git-credential'
+  echo "gh authenticated via GH_TOKEN"
+fi
+[ -n "${GH_USER_NAME:-}" ] && git config --global user.name "$GH_USER_NAME"
+[ -n "${GH_USER_EMAIL:-}" ] && git config --global user.email "$GH_USER_EMAIL"
+
 # ── pi config from env: models.json + settings.json ──────────────────────
 # models.json schema REQUIRES cost with all four fields
 # (input, output, cacheRead, cacheWrite) or pi rejects the whole file.
