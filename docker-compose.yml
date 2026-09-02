@@ -21,7 +21,8 @@ services:
       - micro-agent-data:/data
     environment:
       - LLAMACPP_BASE_URL=${LLAMACPP_BASE_URL:-http://host.docker.internal:8080/v1}
-      - OPENCODE_GO_API_KEY=${OPENCODE_GO_API_KEY:-not-needed}
+      # pi's built-in opencode-go provider activates when this is set
+      - OPENCODE_API_KEY=${OPENCODE_API_KEY:-}
       - KDRIVE_URL=${KDRIVE_URL:-}
       - KDRIVE_USER=${KDRIVE_USER:-}
       - KDRIVE_PASS=${KDRIVE_PASS:-}

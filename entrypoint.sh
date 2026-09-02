@@ -33,7 +33,7 @@ const fs = require("fs");
 const [modelsFile, settingsFile] = process.argv.slice(2);
 const baseUrl = (process.env.LLAMACPP_BASE_URL || "http://host.docker.internal:8080/v1").replace(/\/+$/, "");
 const provider = "llamacpp";
-const apiKey = process.env.OPENCODE_GO_API_KEY || "not-needed";
+const apiKey = process.env.LLAMACPP_API_KEY || "not-needed";
 const mkModel = (id) => ({
   id, name: id, input: ["text"], contextWindow: 131072, maxTokens: 8192,
   cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
