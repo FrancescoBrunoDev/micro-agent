@@ -22,7 +22,7 @@ sshd with pubkey auth only (`SSH_PUBLIC_KEY`, port 22, exposed as `${SSH_PORT:-2
 
 1. `herdr/config.toml` with `onboarding = false` (first run)
 2. Generates `models.json` + `settings.json` for pi from env: provider
-   `llama.cpp` pointing at `LLAMACPP_BASE_URL` with `OPENCODE_GO_API_KEY`,
+   `llamacpp` pointing at `LLAMACPP_BASE_URL` with `OPENCODE_GO_API_KEY`,
    models auto-discovered from `/v1/models` (no hardcoded model id;
    `defaultModel` is set once and then preserved across restarts).
 3. Configures rclone remote `kdrive` (WebDAV) and starts a bisync loop
